@@ -42,7 +42,6 @@ const emptyDraft = {
   votePrice: '1.00',
   platformFeePercent: '',
   minimumVotes: '1',
-  maximumVotes: '500',
   webVotingEnabled: true,
   ussdVotingEnabled: false,
   resultsVisibility: 'ADMIN_ONLY',
@@ -131,11 +130,6 @@ export default function CreateEventPage() {
         Number(draft.minimumVotes) < 1
       )
         nextErrors.minimumVotes = 'Minimum must be at least 1.';
-      if (
-        !Number.isInteger(Number(draft.maximumVotes)) ||
-        Number(draft.maximumVotes) < Number(draft.minimumVotes)
-      )
-        nextErrors.maximumVotes = 'Maximum must be at least the minimum.';
       if (!draft.webVotingEnabled && !draft.ussdVotingEnabled)
         nextErrors.channels = 'Enable at least one voting channel.';
     }
@@ -194,7 +188,6 @@ export default function CreateEventPage() {
           defaultVotePrice: Math.round(Number(draft.votePrice) * 100),
           platformFeeBps: Math.round(Number(draft.platformFeePercent) * 100),
           minimumVotes: Number(draft.minimumVotes),
-          maximumVotesPerTransaction: Number(draft.maximumVotes),
           webVotingEnabled: draft.webVotingEnabled,
           ussdVotingEnabled: draft.ussdVotingEnabled,
           resultsVisibility: draft.resultsVisibility,
@@ -572,19 +565,6 @@ export default function CreateEventPage() {
                   <input id="platform-fee" type="number" min="0" max="100" step="0.01" value={draft.platformFeePercent} onChange={(event) => update('platformFeePercent', event.target.value)} placeholder="Set for this event" />
                   <FieldError>{errors.platformFeePercent}</FieldError>
                 </div>
-                <div className="field-group">
-                  <label htmlFor="maximum-votes">Maximum per transaction</label>
-                  <input
-                    id="maximum-votes"
-                    type="number"
-                    min="1"
-                    value={draft.maximumVotes}
-                    onChange={(event) =>
-                      update('maximumVotes', event.target.value)
-                    }
-                  />
-                  <FieldError>{errors.maximumVotes}</FieldError>
-                </div>
               </div>
               <fieldset className="channel-options">
                 <legend>Voting channels</legend>
@@ -682,8 +662,8 @@ export default function CreateEventPage() {
                 />
                 <ReviewItem
                   icon={Gauge}
-                  label="Vote limits"
-                  value={`${draft.minimumVotes} – ${draft.maximumVotes} votes`}
+                  label="Minimum votes"
+                  value={`${draft.minimumVotes} vote${Number(draft.minimumVotes) === 1 ? '' : 's'}`}
                 />
                 <ReviewItem icon={ReceiptText} label="Platform fee" value={`${Number(draft.platformFeePercent || 0).toFixed(2)}%`} />
                 <ReviewItem

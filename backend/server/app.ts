@@ -25,6 +25,11 @@ app.disable('x-powered-by');
 app.use(
   pinoHttp({
     logger,
+    customLogLevel(_req, res, error) {
+      if (error || res.statusCode >= 500) return 'error';
+      if (res.statusCode >= 400) return 'warn';
+      return env.NODE_ENV === 'development' ? 'debug' : 'info';
+    },
     serializers: {
       req(req) {
         const url = new URL(req.url || '/', 'http://localhost');
@@ -36,6 +41,9 @@ app.use(
           url: `${url.pathname}${url.search}`,
           remoteAddress: req.remoteAddress,
         };
+      },
+      res(res) {
+        return { statusCode: res.statusCode };
       },
     },
   }),

@@ -477,7 +477,6 @@ function EventEditForm({ event, onClose, onSaved }) {
     defaultVotePrice: String(event.defaultVotePrice / 100),
     platformFeePercent: String(event.platformFeeBps / 100),
     minimumVotes: String(event.minimumVotes),
-    maximumVotesPerTransaction: String(event.maximumVotesPerTransaction),
     webVotingEnabled: event.webVotingEnabled,
     ussdVotingEnabled: event.ussdVotingEnabled,
     resultsVisibility: event.resultsVisibility,
@@ -529,7 +528,6 @@ function EventEditForm({ event, onClose, onSaved }) {
           endAt: new Date(form.endAt).toISOString(),
           defaultVotePrice: Math.round(Number(form.defaultVotePrice) * 100),
           minimumVotes: Number(form.minimumVotes),
-          maximumVotesPerTransaction: Number(form.maximumVotesPerTransaction),
           bannerUrl,
         }),
       });
@@ -640,32 +638,18 @@ function EventEditForm({ event, onClose, onSaved }) {
             required
           />
         </label>
-        <div className="admin-form-row">
-          <label>
-            Minimum votes
-            <input
-              type="number"
-              min="1"
-              value={form.minimumVotes}
-              onChange={(e) =>
-                setForm({ ...form, minimumVotes: e.target.value })
-              }
-              required
-            />
-          </label>
-          <label>
-            Maximum per transaction
-            <input
-              type="number"
-              min="1"
-              value={form.maximumVotesPerTransaction}
-              onChange={(e) =>
-                setForm({ ...form, maximumVotesPerTransaction: e.target.value })
-              }
-              required
-            />
-          </label>
-        </div>
+        <label>
+          Minimum votes
+          <input
+            type="number"
+            min="1"
+            value={form.minimumVotes}
+            onChange={(e) =>
+              setForm({ ...form, minimumVotes: e.target.value })
+            }
+            required
+          />
+        </label>
         <div className="admin-form-row">
           <label className="admin-check">
             <input

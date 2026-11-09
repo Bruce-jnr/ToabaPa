@@ -16,6 +16,7 @@ organizerRouter.use(requireAuth);
 
 const managerRoles = [OrganizationRole.ORGANIZATION_OWNER, OrganizationRole.EVENT_ADMIN];
 const paymentRoles = [OrganizationRole.ORGANIZATION_OWNER, OrganizationRole.EVENT_ADMIN, OrganizationRole.FINANCE_ADMIN];
+const PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION = 1_000_000;
 
 function eventAccessWhere(auth: SessionPayload): Prisma.EventWhereInput {
   return {
@@ -39,25 +40,23 @@ const eventSchema = z.object({
   currency: z.string().trim().length(3).transform((value) => value.toUpperCase()),
   defaultVotePrice: z.number().int().positive(),
   platformFeeBps: z.number().int().min(0).max(10_000),
-  minimumVotes: z.number().int().positive(),
-  maximumVotesPerTransaction: z.number().int().positive(),
+  minimumVotes: z.number().int().positive().max(PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION),
   webVotingEnabled: z.boolean(),
   ussdVotingEnabled: z.boolean(),
   resultsVisibility: z.enum(['EXACT_TOTALS', 'PERCENTAGES', 'RANKING_ONLY', 'HIDDEN_UNTIL_END', 'ADMIN_ONLY', 'MANUAL_RELEASE']),
   bannerUrl: z.string().trim().max(300).optional(),
-}).superRefine((value, context) => {
+}).strict().superRefine((value, context) => {
   if (value.endAt <= value.startAt) context.addIssue({ code: 'custom', path: ['endAt'], message: 'End time must be after start time.' });
   if (value.endAt <= new Date()) context.addIssue({ code: 'custom', path: ['endAt'], message: 'Event must end in the future.' });
-  if (value.maximumVotesPerTransaction < value.minimumVotes) context.addIssue({ code: 'custom', path: ['maximumVotesPerTransaction'], message: 'Maximum votes must be at least the minimum.' });
   if (!value.webVotingEnabled && !value.ussdVotingEnabled) context.addIssue({ code: 'custom', path: ['webVotingEnabled'], message: 'Enable at least one voting channel.' });
 });
 const eventPatchSchema = z.object({
   name: z.string().trim().min(3).max(100), description: z.string().trim().max(500),
   startAt: z.coerce.date(), endAt: z.coerce.date(), timezone: z.string().trim().min(2).max(60),
   currency: z.string().trim().length(3).transform((value) => value.toUpperCase()),
-  defaultVotePrice: z.number().int().positive(), minimumVotes: z.number().int().positive(),
+  defaultVotePrice: z.number().int().positive(), minimumVotes: z.number().int().positive().max(PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION),
   platformFeeBps: z.number().int().min(0).max(10_000),
-  maximumVotesPerTransaction: z.number().int().positive(), webVotingEnabled: z.boolean(), ussdVotingEnabled: z.boolean(),
+  webVotingEnabled: z.boolean(), ussdVotingEnabled: z.boolean(),
   resultsVisibility: z.enum(['EXACT_TOTALS', 'PERCENTAGES', 'RANKING_ONLY', 'HIDDEN_UNTIL_END', 'ADMIN_ONLY', 'MANUAL_RELEASE']),
   bannerUrl: z.string().trim().max(300),
 }).partial().strict();
@@ -69,7 +68,7 @@ function slugify(value: string) {
 organizerRouter.get('/context', async (req, res, next) => {
   try {
     const auth = (req as AuthenticatedRequest).auth;
-    const events = await prisma.event.findMany({ where: { ...eventAccessWhere(auth), status: { not: EventStatus.ARCHIVED } }, select: { id: true, name: true, description: true, status: true, bannerUrl: true, startAt: true, endAt: true, timezone: true, currency: true, defaultVotePrice: true, platformFeeBps: true, minimumVotes: true, maximumVotesPerTransaction: true, webVotingEnabled: true, ussdVotingEnabled: true, resultsVisibility: true }, orderBy: { createdAt: 'desc' } });
+    const events = await prisma.event.findMany({ where: { ...eventAccessWhere(auth), status: { not: EventStatus.ARCHIVED } }, select: { id: true, name: true, description: true, status: true, bannerUrl: true, startAt: true, endAt: true, timezone: true, currency: true, defaultVotePrice: true, platformFeeBps: true, minimumVotes: true, webVotingEnabled: true, ussdVotingEnabled: true, resultsVisibility: true }, orderBy: { createdAt: 'desc' } });
     res.json({ success: true, data: { events } });
   } catch (error) { next(error); }
 });
@@ -148,7 +147,7 @@ organizerRouter.post('/events', requireRoles(...managerRoles), async (req, res, 
     const status = input.startAt > now ? EventStatus.SCHEDULED : EventStatus.ACTIVE;
     const event = await prisma.$transaction(async (tx) => {
       const created = await tx.event.create({
-        data: { ...input, organizationId, slug: `${slugify(input.name)}-${Date.now().toString(36)}`, description: input.description || null, status },
+        data: { ...input, maximumVotesPerTransaction: PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION, organizationId, slug: `${slugify(input.name)}-${Date.now().toString(36)}`, description: input.description || null, status },
       });
       if ((req as AuthenticatedRequest).auth.globalRole !== 'SUPER_ADMIN') {
         const membership = await tx.organizationMembership.findUniqueOrThrow({ where: { organizationId_userId: { organizationId, userId } } });
@@ -175,7 +174,7 @@ organizerRouter.patch('/events/:id', requireRoles(...managerRoles), async (req, 
       defaultVotePrice: input.defaultVotePrice ?? current.defaultVotePrice,
       platformFeeBps: input.platformFeeBps ?? current.platformFeeBps,
       minimumVotes: input.minimumVotes ?? current.minimumVotes,
-      maximumVotesPerTransaction: input.maximumVotesPerTransaction ?? current.maximumVotesPerTransaction,
+      maximumVotesPerTransaction: PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION,
       webVotingEnabled: input.webVotingEnabled ?? current.webVotingEnabled,
       ussdVotingEnabled: input.ussdVotingEnabled ?? current.ussdVotingEnabled,
       resultsVisibility: input.resultsVisibility ?? current.resultsVisibility,
@@ -183,10 +182,9 @@ organizerRouter.patch('/events/:id', requireRoles(...managerRoles), async (req, 
     };
     if (merged.endAt <= merged.startAt) throw new AppError(400, 'INVALID_EVENT_WINDOW', 'End time must be after start time.');
     if (input.endAt && input.endAt <= new Date()) throw new AppError(400, 'INVALID_EVENT_END', 'The new end time must be in the future.');
-    if (merged.maximumVotesPerTransaction < merged.minimumVotes) throw new AppError(400, 'INVALID_VOTE_LIMITS', 'Maximum votes must be at least the minimum.');
     if (!merged.webVotingEnabled && !merged.ussdVotingEnabled) throw new AppError(400, 'VOTING_CHANNEL_REQUIRED', 'Enable at least one voting channel.');
     const updated = await prisma.$transaction(async (tx) => {
-      const changed = await tx.event.update({ where: { id }, data: input });
+      const changed = await tx.event.update({ where: { id }, data: { ...input, maximumVotesPerTransaction: PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION } });
       await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, action: 'EVENT_UPDATED', resourceType: 'Event', resourceId: id, oldValue: { name: current.name, startAt: current.startAt, endAt: current.endAt }, newValue: { name: changed.name, startAt: changed.startAt, endAt: changed.endAt } } });
       return changed;
     });
