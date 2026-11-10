@@ -100,7 +100,7 @@ function DashboardAccessDenied({ session }) {
     <AdminLayout
       session={session}
       title="Access restricted"
-      description="This section is available only to platform superadmins."
+      description="Platform superadministrators manage this workspace."
     >
       <AdminEmpty
         icon={ShieldCheck}

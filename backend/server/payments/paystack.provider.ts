@@ -134,15 +134,10 @@ export class PaystackProvider implements PaymentProvider {
       });
       const payload: unknown = await response.json().catch(() => null);
       if (!response.ok) {
-        const providerError = z
-          .object({ message: z.string().trim().min(1) })
-          .safeParse(payload);
         throw new AppError(
           502,
           "PAYMENT_PROVIDER_ERROR",
-          providerError.success
-            ? `Paystack: ${providerError.data.message}`
-            : "Payment provider request failed.",
+          "The payment service could not process this request.",
         );
       }
       return payload;

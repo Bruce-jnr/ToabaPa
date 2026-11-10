@@ -80,6 +80,9 @@ export function AdminLayout({ session, title, description, action, children }) {
 
   return (
     <div className="admin-shell management-shell">
+      <a className="skip-link" href="#dashboard-content">
+        Skip to dashboard content
+      </a>
       <aside className="admin-sidebar">
         <Link className="admin-brand" to="/">
           <img src={logo} alt="Toabapa" />
@@ -106,7 +109,7 @@ export function AdminLayout({ session, title, description, action, children }) {
           </button>
         </div>
       </aside>
-      <div className="management-main">
+      <div className="management-main" id="dashboard-content">
         <header className="management-header">
           <div>
             <span>{session.organization.name}</span>

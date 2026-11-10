@@ -96,6 +96,9 @@ function Shell({ children }) {
   }, [menuOpen]);
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
       <header className="site-header">
         <Link className="brand" to="/" aria-label="Toabapa home">
           <img src={logo} alt="Toabapa" />
@@ -188,7 +191,7 @@ function Shell({ children }) {
           </aside>
         </div>
       )}
-      <main>{children}</main>
+      <main id="main-content">{children}</main>
       <footer className="site-footer">
         <Link to="/" aria-label="Toabapa home">
           <img src={logo} alt="Toabapa" />
@@ -390,23 +393,34 @@ function HomePage() {
     <Shell>
       <section className="hero-section">
         <ScrollReveal className="hero-copy">
-          <span className="eyebrow">Ghana&apos;s public voting platform</span>
-          <h1>
-            Vote for the people who <em>inspire you.</em>
-          </h1>
+          <span className="eyebrow">Public voting platform</span>
+          <h1>Online voting for Ghana&apos;s events</h1>
           <p>
-            Discover active competitions, find your candidate, and show your
-            support in a few simple steps.
+            Find a live event, choose a candidate, and cast verified votes in
+            three clear steps.
           </p>
           <SearchForm />
         </ScrollReveal>
-        <ScrollReveal className="hero-art reveal-scale" delay={100}>
-          <div className="ballot">
-            <Vote />
-            <strong>Your vote counts</strong>
-            <span>Secure voting powered by ToabaPa</span>
+        <ScrollReveal className="hero-art reveal-scale" delay={100} aria-label="Toabapa voting interface preview">
+          <div className="vote-preview">
+            <div className="vote-preview-head">
+              <span className="preview-icon"><Vote /></span>
+              <span className="status-badge live"><span />Live voting</span>
+            </div>
+            <div className="vote-preview-copy">
+              <span>Candidate selected</span>
+              <strong>Choose your votes</strong>
+            </div>
+            <div className="vote-quantity" aria-hidden="true">
+              <span>−</span><strong>5</strong><span>+</span>
+            </div>
+            <div className="vote-preview-total">
+              <span>Payment total</span>
+              <strong>GHS 5.00</strong>
+            </div>
+            <div className="preview-action">Continue securely <ArrowRight /></div>
           </div>
-          <div className="vote-mark">✓</div>
+          <div className="verified-float"><ShieldCheck /> Payment verified</div>
         </ScrollReveal>
       </section>
       <section className="content-section">
@@ -416,7 +430,7 @@ function HomePage() {
             <h2>Live events</h2>
           </div>
           <Link to="/events?status=live">
-            See all <ArrowRight />
+            See live events <ArrowRight />
           </Link>
         </ScrollReveal>
         {events.loading ? (
@@ -440,8 +454,8 @@ function HomePage() {
       </section>
       <section className="how-section">
         <ScrollReveal>
-          <span className="eyebrow">Simple and transparent</span>
-          <h2>Three steps to support your favorite</h2>
+          <span className="eyebrow">How voting works</span>
+          <h2>Voting in three clear steps</h2>
         </ScrollReveal>
         <ol>
           <ScrollReveal as="li">
@@ -456,7 +470,7 @@ function HomePage() {
           </ScrollReveal>
           <ScrollReveal as="li" delay={160}>
             <b>03</b>
-            <strong>Pay</strong>
+            <strong>Confirm payment</strong>
             <span>Confirm payment and receive your reference.</span>
           </ScrollReveal>
         </ol>
@@ -464,7 +478,7 @@ function HomePage() {
       <section className="faq-section" id="faq">
         <ScrollReveal className="faq-heading">
           <span className="eyebrow">Frequently asked questions</span>
-          <h2>What voters need to know.</h2>
+          <h2>What voters need to know</h2>
           <p>Clear answers about voting, payments, results, and privacy.</p>
         </ScrollReveal>
         <ScrollReveal className="faq-list" delay={80}>
@@ -1158,8 +1172,7 @@ function VoteDialog({ candidate, event, onClose }) {
               </div>
             </dl>
             <p>
-              Votes are credited only after Paystack confirms a successful
-              payment.
+              Votes are credited only after the payment is securely confirmed.
             </p>
             {state.error && (
               <div className="vote-error">
