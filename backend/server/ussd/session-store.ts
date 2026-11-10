@@ -5,6 +5,7 @@ import { prisma } from '../db/prisma.js';
 const ussdSessionSchema = z.object({
   step: z.enum(['MAIN_MENU', 'ENTER_CODE', 'ENTER_QUANTITY', 'CONFIRM_ORDER']),
   phone: z.string(),
+  userId: z.string(),
   network: z.string(),
   candidateId: z.string().optional(),
   candidateName: z.string().optional(),
@@ -23,6 +24,7 @@ export async function saveUssdSession(id: string, session: UssdSession) {
   const payload: Prisma.InputJsonObject = {
     step: validated.step,
     phone: validated.phone,
+    userId: validated.userId,
     network: validated.network,
     ...(validated.candidateId !== undefined
       ? { candidateId: validated.candidateId }

@@ -71,20 +71,22 @@ export function CategoriesPage({ session }) {
       }
     >
       <div className="management-toolbar">
-        <label>
-          Event
-          <select
-            value={eventId}
-            onChange={(event) => setEventId(event.target.value)}
-          >
-            <option value="">All events</option>
-            {context.events.map((event) => (
-              <option key={event.id} value={event.id}>
-                {event.name}
-              </option>
-            ))}
-          </select>
-          <ChevronDown />
+        <label className="toolbar-filter-field">
+          <span>Event</span>
+          <div className="toolbar-select-control">
+            <select
+              value={eventId}
+              onChange={(event) => setEventId(event.target.value)}
+            >
+              <option value="">All events</option>
+              {context.events.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown />
+          </div>
         </label>
         <span>{items.length} categories</span>
       </div>

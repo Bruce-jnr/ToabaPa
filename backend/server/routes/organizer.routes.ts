@@ -10,6 +10,7 @@ import { AppError } from '../errors/app-error.js';
 import { type AuthenticatedRequest, requireAuth, requireRoles } from '../middleware/auth.js';
 import type { SessionPayload } from '../auth/session.js';
 import { normalizeGhanaPhone } from '../domain/phone.js';
+import { auditRequestContext } from '../security/audit-request.js';
 
 export const organizerRouter = Router();
 organizerRouter.use(requireAuth);
@@ -101,10 +102,8 @@ organizerRouter.post('/event-administrators', requireSuperAdmin, async (req, res
       const existingUsername = await tx.user.findUnique({ where: { username: input.username } });
       if (existingUsername) throw new AppError(409, 'USERNAME_TAKEN', 'This administrator username is already in use.');
       const existing = await tx.user.findUnique({ where: { email: input.email.toLowerCase() } });
-      if (existing?.globalRole === 'SUPER_ADMIN') throw new AppError(409, 'ADMIN_ALREADY_PRIVILEGED', 'This account already has superadmin access.');
-      const user = existing
-        ? await tx.user.update({ where: { id: existing.id }, data: { name: input.name, username: input.username, phone, passwordHash, sessionVersion: { increment: 1 } } })
-        : await tx.user.create({ data: { name: input.name, username: input.username, email: input.email.toLowerCase(), phone, passwordHash } });
+      if (existing) throw new AppError(409, 'ACCOUNT_ALREADY_EXISTS', 'An account already uses this email address. Invite the existing user instead.');
+      const user = await tx.user.create({ data: { name: input.name, username: input.username, email: input.email.toLowerCase(), phone, passwordHash } });
       const access = await tx.organizationMembership.upsert({
         where: { organizationId_userId: { organizationId: auth.organizationId, userId: user.id } },
         create: { organizationId: auth.organizationId, userId: user.id, role: OrganizationRole.EVENT_ADMIN, status: MembershipStatus.ACTIVE },
@@ -112,7 +111,7 @@ organizerRouter.post('/event-administrators', requireSuperAdmin, async (req, res
       });
       await tx.eventAssignment.deleteMany({ where: { membershipId: access.id } });
       await tx.eventAssignment.createMany({ data: [...new Set(input.eventIds)].map((eventId) => ({ eventId, membershipId: access.id })) });
-      await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, action: 'EVENT_ADMIN_ASSIGNED', resourceType: 'OrganizationMembership', resourceId: access.id, newValue: { administratorUsername: input.username, eventIds: input.eventIds } } });
+      await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, ...auditRequestContext(req), action: 'EVENT_ADMIN_ASSIGNED', resourceType: 'OrganizationMembership', resourceId: access.id, newValue: { administratorUsername: input.username, eventIds: input.eventIds } } });
       return access;
     });
     res.status(201).json({ success: true, data: { id: membership.id }, message: 'Event administrator created and assigned.' });
@@ -133,7 +132,7 @@ organizerRouter.patch('/event-administrators/:id', requireSuperAdmin, async (req
       await tx.eventAssignment.deleteMany({ where: { membershipId: id } });
       await tx.eventAssignment.createMany({ data: [...new Set(eventIds)].map((eventId) => ({ eventId, membershipId: id })) });
       if (status !== MembershipStatus.ACTIVE) await tx.user.update({ where: { id: membership.userId }, data: { sessionVersion: { increment: 1 } } });
-      await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, action: 'EVENT_ADMIN_ACCESS_UPDATED', resourceType: 'OrganizationMembership', resourceId: id, newValue: { eventIds, status } } });
+      await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, ...auditRequestContext(req), action: 'EVENT_ADMIN_ACCESS_UPDATED', resourceType: 'OrganizationMembership', resourceId: id, newValue: { eventIds, status } } });
     });
     res.json({ success: true, data: null, message: 'Administrator access updated.' });
   } catch (error) { next(error); }
@@ -153,7 +152,7 @@ organizerRouter.post('/events', requireRoles(...managerRoles), async (req, res, 
         const membership = await tx.organizationMembership.findUniqueOrThrow({ where: { organizationId_userId: { organizationId, userId } } });
         await tx.eventAssignment.create({ data: { eventId: created.id, membershipId: membership.id } });
       }
-      await tx.auditLog.create({ data: { organizationId, userId, action: 'EVENT_PUBLISHED', resourceType: 'Event', resourceId: created.id, newValue: { name: created.name, status: created.status } } });
+      await tx.auditLog.create({ data: { organizationId, userId, ...auditRequestContext(req), action: 'EVENT_PUBLISHED', resourceType: 'Event', resourceId: created.id, newValue: { name: created.name, status: created.status } } });
       return created;
     });
     res.status(201).json({ success: true, data: event, message: 'Event published.' });
@@ -185,7 +184,7 @@ organizerRouter.patch('/events/:id', requireRoles(...managerRoles), async (req, 
     if (!merged.webVotingEnabled && !merged.ussdVotingEnabled) throw new AppError(400, 'VOTING_CHANNEL_REQUIRED', 'Enable at least one voting channel.');
     const updated = await prisma.$transaction(async (tx) => {
       const changed = await tx.event.update({ where: { id }, data: { ...input, maximumVotesPerTransaction: PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION } });
-      await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, action: 'EVENT_UPDATED', resourceType: 'Event', resourceId: id, oldValue: { name: current.name, startAt: current.startAt, endAt: current.endAt }, newValue: { name: changed.name, startAt: changed.startAt, endAt: changed.endAt } } });
+      await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, ...auditRequestContext(req), action: 'EVENT_UPDATED', resourceType: 'Event', resourceId: id, oldValue: { name: current.name, startAt: current.startAt, endAt: current.endAt }, newValue: { name: changed.name, startAt: changed.startAt, endAt: changed.endAt } } });
       return changed;
     });
     res.json({ success: true, data: updated });
@@ -210,7 +209,7 @@ organizerRouter.patch('/events/:id/voting-status', requireRoles(...managerRoles)
     const nextStatus = action === 'pause' ? EventStatus.PAUSED : EventStatus.ACTIVE;
     const updated = await prisma.$transaction(async (tx) => {
       const changed = await tx.event.update({ where: { id: event.id }, data: { status: nextStatus }, select: { id: true, name: true, status: true } });
-      await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, action: action === 'pause' ? 'EVENT_VOTING_PAUSED' : 'EVENT_VOTING_RESUMED', resourceType: 'Event', resourceId: event.id, oldValue: { status: event.status }, newValue: { status: nextStatus } } });
+      await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, ...auditRequestContext(req), action: action === 'pause' ? 'EVENT_VOTING_PAUSED' : 'EVENT_VOTING_RESUMED', resourceType: 'Event', resourceId: event.id, oldValue: { status: event.status }, newValue: { status: nextStatus } } });
       return changed;
     });
     res.json({ success: true, data: updated, message: action === 'pause' ? 'Voting paused.' : 'Voting resumed.' });
@@ -226,7 +225,7 @@ organizerRouter.delete('/events/:id', requireRoles(...managerRoles), async (req,
     if (event.status === EventStatus.ACTIVE) throw new AppError(409, 'ACTIVE_EVENT_ARCHIVE_BLOCKED', 'Pause voting before archiving an active event.');
     await prisma.$transaction(async (tx) => {
       await tx.event.update({ where: { id }, data: { status: EventStatus.ARCHIVED } });
-      await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, action: 'EVENT_ARCHIVED', resourceType: 'Event', resourceId: id, oldValue: { status: event.status }, newValue: { status: EventStatus.ARCHIVED } } });
+      await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, ...auditRequestContext(req), action: 'EVENT_ARCHIVED', resourceType: 'Event', resourceId: id, oldValue: { status: event.status }, newValue: { status: EventStatus.ARCHIVED } } });
     });
     res.json({ success: true, data: null, message: 'Event archived.' });
   } catch (error) { next(error); }
@@ -249,7 +248,7 @@ organizerRouter.post('/categories', requireRoles(...managerRoles), async (req, r
     if (!event) throw new AppError(404, 'EVENT_NOT_FOUND', 'Event was not found.');
     const category = await prisma.$transaction(async (tx) => {
       const created = await tx.category.create({ data: { ...input, slug: `${slugify(input.name)}-${Date.now().toString(36)}`, description: input.description || null } });
-      await tx.auditLog.create({ data: { organizationId, userId, action: 'CATEGORY_CREATED', resourceType: 'Category', resourceId: created.id, newValue: { name: created.name } } });
+      await tx.auditLog.create({ data: { organizationId, userId, ...auditRequestContext(req), action: 'CATEGORY_CREATED', resourceType: 'Category', resourceId: created.id, newValue: { name: created.name } } });
       return created;
     });
     res.status(201).json({ success: true, data: category });
@@ -320,7 +319,7 @@ organizerRouter.patch('/events/:id/banner', requireRoles(...managerRoles), async
     if (!event) throw new AppError(404, 'EVENT_NOT_FOUND', 'Event was not found.');
     const updated = await prisma.$transaction(async (tx) => {
       const changed = await tx.event.update({ where: { id }, data: { bannerUrl }, select: { id: true, name: true, status: true, bannerUrl: true } });
-      await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, action: 'EVENT_BANNER_UPDATED', resourceType: 'Event', resourceId: id, oldValue: { bannerUrl: event.bannerUrl }, newValue: { bannerUrl } } });
+      await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, ...auditRequestContext(req), action: 'EVENT_BANNER_UPDATED', resourceType: 'Event', resourceId: id, oldValue: { bannerUrl: event.bannerUrl }, newValue: { bannerUrl } } });
       return changed;
     });
     res.json({ success: true, data: updated });
@@ -474,6 +473,7 @@ organizerRouter.get('/audit-logs', requireSuperAdmin, async (req, res, next) => 
         { action: { contains: query.search, mode: 'insensitive' } },
         { resourceType: { contains: query.search, mode: 'insensitive' } },
         { resourceId: { contains: query.search, mode: 'insensitive' } },
+        { ipAddress: { contains: query.search, mode: 'insensitive' } },
         { user: { is: { name: { contains: query.search, mode: 'insensitive' } } } },
         { user: { is: { email: { contains: query.search, mode: 'insensitive' } } } },
       ] } : {}),

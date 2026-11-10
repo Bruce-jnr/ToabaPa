@@ -21,6 +21,7 @@ import { prisma } from '../db/prisma.js';
 import { AppError } from '../errors/app-error.js';
 import { type AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
 import { normalizeGhanaPhone } from '../domain/phone.js';
+import { auditRequestContext } from '../security/audit-request.js';
 import {
   sendPasswordResetOtp,
   verifyPasswordResetOtp,
@@ -305,8 +306,25 @@ authRouter.post('/password-reset/request', async (req, res, next) => {
       });
       return;
     }
+    const recentChallenge = await prisma.passwordResetChallenge.findFirst({
+      where: {
+        userId: user.id,
+        consumedAt: null,
+        expiresAt: { gt: new Date() },
+        createdAt: { gt: new Date(Date.now() - 60_000) },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (recentChallenge) {
+      res.json({
+        success: true,
+        data: { challengeId: recentChallenge.id },
+        message: 'If the account has a recovery phone, a code has been sent.',
+      });
+      return;
+    }
     await prisma.passwordResetChallenge.updateMany({
-      where: { userId: user.id, consumedAt: null },
+      where: { userId: user.id, consumedAt: null, expiresAt: { lte: new Date() } },
       data: { consumedAt: new Date() },
     });
     const challenge = await prisma.passwordResetChallenge.create({
@@ -418,6 +436,7 @@ authRouter.post('/password-reset/confirm', async (req, res, next) => {
         data: {
           organizationId: membership?.organizationId,
           userId: challenge.userId,
+          ...auditRequestContext(req),
           action: 'PASSWORD_RESET_COMPLETED',
           resourceType: 'User',
           resourceId: challenge.userId,

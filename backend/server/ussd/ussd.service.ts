@@ -1,6 +1,7 @@
 import {
   PaymentProviderName,
   PaymentStatus,
+  VoteChannel,
 } from '@prisma/client';
 import { prisma } from '../db/prisma.js';
 import { AppError } from '../errors/app-error.js';
@@ -43,6 +44,7 @@ export async function handleUssd(
     await saveUssdSession(request.sessionID, {
       step: 'MAIN_MENU',
       phone,
+      userId: request.userID,
       network: request.network,
     });
     return {
@@ -56,6 +58,24 @@ export async function handleUssd(
       message: 'Session expired. Try Again',
       continueSession: false,
     };
+  }
+  let sameNetwork = false;
+  try {
+    sameNetwork = providerFor(session.network) === providerFor(request.network);
+  } catch {
+    sameNetwork = false;
+  }
+  if (
+    session.phone !== phone ||
+    session.userId !== request.userID ||
+    !sameNetwork
+  ) {
+    await deleteUssdSession(request.sessionID);
+    throw new AppError(
+      400,
+      'USSD_SESSION_MISMATCH',
+      'Session details changed. Start again.',
+    );
   }
   const input = request.userData.trim();
   if (session.step === 'MAIN_MENU') {
@@ -144,8 +164,7 @@ export async function handleUssd(
     candidateId: session.candidateId,
     quantity: session.quantity,
     phone,
-    channel: 'USSD',
-  });
+  }, VoteChannel.USSD);
   const savedOrder = await prisma.voteOrder.findUniqueOrThrow({
     where: { id: order.id },
     include: { organization: { select: { email: true } } },

@@ -11,7 +11,8 @@ import { AuditLogsPage } from './organizer-admin/AuditLogsPage.jsx';
 import { api } from './organizer-admin/adminApi.js';
 import { LoginPage } from './organizer-admin/LoginPage.jsx';
 import {
-  OrganizerOverview,
+  DashboardOverview,
+  EventsManagementPage,
   SettingsPage,
 } from './organizer-admin/EventManagementPages.jsx';
 import { AdminLayout, AdminEmpty } from './organizer-admin/AdminShell.jsx';
@@ -56,9 +57,9 @@ function OrganizerGate({ page }) {
         <DashboardAccessDenied session={session} />
       );
   else if (page === 'events')
-    content = <OrganizerOverview session={session} eventManagement />;
+    content = <EventsManagementPage session={session} />;
   else if (page === 'create-event') content = <CreateEventPage />;
-  else content = <OrganizerOverview session={session} />;
+  else content = <DashboardOverview session={session} />;
   return <DashboardErrorBoundary>{content}</DashboardErrorBoundary>;
 }
 

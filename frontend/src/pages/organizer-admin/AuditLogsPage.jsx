@@ -14,7 +14,26 @@ import {
   AdminEmpty,
 } from "./AdminShell.jsx";
 import { api } from "./adminApi.js";
-import { readableAction, safeAuditValue } from "./auditUtils.js";
+import { auditValueEntries, readableAction } from "./auditUtils.js";
+
+function AuditValues({ title, value }) {
+  const entries = auditValueEntries(value);
+  if (!entries.length) return null;
+  return (
+    <section className="audit-values">
+      <h3>{title}</h3>
+      <dl>
+        {entries.map((entry, index) => (
+          <div key={`${entry.label}-${index}`}>
+            <dt>{entry.label}</dt>
+            <dd>{entry.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 export function AuditLogsPage({ session }) {
   const [search, setSearch] = useState("");
   const [action, setAction] = useState("");
@@ -46,67 +65,76 @@ export function AuditLogsPage({ session }) {
       description="Review security-sensitive and administrative activity for your organization."
     >
       <div className="management-toolbar audit-toolbar">
-        <label className="admin-search">
-          <Search />
-          <input
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(1);
-            }}
-            placeholder="Action, resource, or actor"
-          />
+        <label className="toolbar-filter-field toolbar-search-field">
+          <span>Search logs</span>
+          <div className="toolbar-search-control">
+            <Search />
+            <input
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Action, resource, actor, or IP"
+            />
+          </div>
         </label>
-        <label>
-          Action
-          <select
-            value={action}
-            onChange={(event) => {
-              setAction(event.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">All actions</option>
-            {data.filters.actions.map((item) => (
-              <option key={item} value={item}>
-                {readableAction(item)}
-              </option>
-            ))}
-          </select>
-          <ChevronDown />
+        <label className="toolbar-filter-field">
+          <span>Action</span>
+          <div className="toolbar-select-control">
+            <select
+              value={action}
+              onChange={(event) => {
+                setAction(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All actions</option>
+              {data.filters.actions.map((item) => (
+                <option key={item} value={item}>
+                  {readableAction(item)}
+                </option>
+              ))}
+            </select>
+            <ChevronDown />
+          </div>
         </label>
-        <label>
-          Resource
-          <select
-            value={resourceType}
-            onChange={(event) => {
-              setResourceType(event.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">All resources</option>
-            {data.filters.resourceTypes.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-          <ChevronDown />
+        <label className="toolbar-filter-field">
+          <span>Resource</span>
+          <div className="toolbar-select-control">
+            <select
+              value={resourceType}
+              onChange={(event) => {
+                setResourceType(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All resources</option>
+              {data.filters.resourceTypes.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+            <ChevronDown />
+          </div>
         </label>
-        <label>
-          Retention
-          <select
-            value={retention}
-            onChange={(event) => {
-              setRetention(event.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-            <option value="all">All records</option>
-          </select>
-          <ChevronDown />
+        <label className="toolbar-filter-field">
+          <span>Retention</span>
+          <div className="toolbar-select-control">
+            <select
+              value={retention}
+              onChange={(event) => {
+                setRetention(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+              <option value="all">All records</option>
+            </select>
+            <ChevronDown />
+          </div>
         </label>
       </div>
       {state.error && <div className="admin-alert">{state.error}</div>}
@@ -222,20 +250,10 @@ export function AuditLogsPage({ session }) {
               )}
             </dl>
             {selected.oldValue != null && (
-              <section>
-                <h3>Previous value</h3>
-                <pre>
-                  {JSON.stringify(safeAuditValue(selected.oldValue), null, 2)}
-                </pre>
-              </section>
+              <AuditValues title="Previous values" value={selected.oldValue} />
             )}
             {selected.newValue != null && (
-              <section>
-                <h3>New value</h3>
-                <pre>
-                  {JSON.stringify(safeAuditValue(selected.newValue), null, 2)}
-                </pre>
-              </section>
+              <AuditValues title="New values" value={selected.newValue} />
             )}
           </div>
         </Dialog>

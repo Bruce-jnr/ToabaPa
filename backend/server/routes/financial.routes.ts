@@ -9,6 +9,7 @@ import { AppError } from "../errors/app-error.js";
 import { type AuthenticatedRequest, requireAuth } from "../middleware/auth.js";
 import { paystackProvider } from "../payments/paystack.provider.js";
 import { getWalletBalance } from "../services/wallet.service.js";
+import { auditRequestContext } from "../security/audit-request.js";
 
 export const financialRouter = Router();
 financialRouter.use(requireAuth);
@@ -207,6 +208,7 @@ financialRouter.post("/adjustments", async (req, res, next) => {
         data: {
           organizationId: auth.organizationId,
           userId: auth.userId,
+          ...auditRequestContext(req),
           action: "LEDGER_ADJUSTMENT_CREATED",
           resourceType: "LedgerEntry",
           resourceId: created.id,
@@ -517,6 +519,7 @@ financialRouter.post("/withdrawals", async (req, res, next) => {
           data: {
             organizationId: auth.organizationId,
             userId: auth.userId,
+            ...auditRequestContext(req),
             action: "WITHDRAWAL_REQUESTED",
             resourceType: "Withdrawal",
             resourceId: created.id,
@@ -665,6 +668,7 @@ financialRouter.post("/withdrawals/:id/process", async (req, res, next) => {
       data: {
         organizationId: auth.organizationId,
         userId: auth.userId,
+        ...auditRequestContext(req),
         action: "PAYSTACK_TRANSFER_INITIATED",
         resourceType: "Withdrawal",
         resourceId: id,
@@ -713,6 +717,7 @@ financialRouter.post("/withdrawals/:id/finalize", async (req, res, next) => {
       data: {
         organizationId: auth.organizationId,
         userId: auth.userId,
+        ...auditRequestContext(req),
         action: "PAYSTACK_TRANSFER_OTP_SUBMITTED",
         resourceType: "Withdrawal",
         resourceId: id,

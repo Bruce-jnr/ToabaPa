@@ -16,6 +16,7 @@ import {
   AdminEmpty,
 } from './AdminShell.jsx';
 import { api } from './adminApi.js';
+import { quoteCsvCell } from './csv.js';
 import { useOrganizerContext } from './useOrganizerContext.js';
 export function PaymentsPage({ session }) {
   const context = useOrganizerContext();
@@ -77,9 +78,8 @@ export function PaymentsPage({ session }) {
       item.status,
       item.createdAt,
     ]);
-    const quote = (value) => `"${String(value).replaceAll('"', '""')}"`;
     const blob = new Blob(
-      [[headings, ...rows].map((row) => row.map(quote).join(',')).join('\n')],
+      [[headings, ...rows].map((row) => row.map(quoteCsvCell).join(',')).join('\n')],
       { type: 'text/csv' },
     );
     const url = URL.createObjectURL(blob);
@@ -171,54 +171,61 @@ export function PaymentsPage({ session }) {
         </section>
       )}
       <div className="management-toolbar payment-toolbar">
-        <label>
-          Event
-          <select
-            value={eventId}
-            onChange={(event) => {
-              setEventId(event.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">All events</option>
-            {context.events.map((item) => (
-              <option value={item.id} key={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-          <ChevronDown />
+        <label className="toolbar-filter-field">
+          <span>Event</span>
+          <div className="toolbar-select-control">
+            <select
+              value={eventId}
+              onChange={(event) => {
+                setEventId(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All events</option>
+              {context.events.map((item) => (
+                <option value={item.id} key={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown />
+          </div>
         </label>
-        <label className="admin-search">
-          <Search />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Reference or candidate"
-          />
+        <label className="toolbar-filter-field toolbar-search-field">
+          <span>Search payments</span>
+          <div className="toolbar-search-control">
+            <Search />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Reference or candidate"
+            />
+          </div>
         </label>
-        <label>
-          Status
-          <select
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-          >
-            <option value="">All statuses</option>
-            {[
-              'PENDING',
-              'PROCESSING',
-              'PAID',
-              'FAILED',
-              'CANCELLED',
-              'EXPIRED',
-              'REFUNDED',
-            ].map((item) => (
-              <option value={item} key={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-          <ChevronDown />
+        <label className="toolbar-filter-field">
+          <span>Status</span>
+          <div className="toolbar-select-control">
+            <select
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+            >
+              <option value="">All statuses</option>
+              {[
+                'PENDING',
+                'PROCESSING',
+                'PAID',
+                'FAILED',
+                'CANCELLED',
+                'EXPIRED',
+                'REFUNDED',
+              ].map((item) => (
+                <option value={item} key={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+            <ChevronDown />
+          </div>
         </label>
         <button
           className="secondary-action payment-export"

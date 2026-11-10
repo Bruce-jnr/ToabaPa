@@ -1,7 +1,11 @@
 ﻿import { useCallback, useEffect, useState } from "react";
 import {
+  Activity,
   Archive,
+  ArrowRight,
   CalendarDays,
+  CirclePause,
+  Clock3,
   ImagePlus,
   LoaderCircle,
   PauseCircle,
@@ -17,7 +21,108 @@ import {
   AdminLoading,
   AdminEmpty,
 } from "./AdminShell.jsx";
-export function OrganizerOverview({ session, eventManagement = false }) {
+
+export function DashboardOverview({ session }) {
+  const [state, setState] = useState({ events: [], loading: true, error: "" });
+  useEffect(() => {
+    api("/api/v1/organizer/context")
+      .then((data) =>
+        setState({ events: data.events || [], loading: false, error: "" }),
+      )
+      .catch((error) =>
+        setState({ events: [], loading: false, error: error.message }),
+      );
+  }, []);
+
+  const activeEvents = state.events.filter((event) => event.status === "ACTIVE");
+  const pausedEvents = state.events.filter((event) => event.status === "PAUSED");
+  const plannedEvents = state.events.filter((event) =>
+    ["DRAFT", "SCHEDULED"].includes(event.status),
+  );
+  const recentEvents = [...state.events]
+    .sort((first, second) => new Date(second.startAt) - new Date(first.startAt))
+    .slice(0, 3);
+
+  const metrics = [
+    { label: "Total events", value: state.events.length, icon: CalendarDays },
+    { label: "Active voting", value: activeEvents.length, icon: Activity },
+    { label: "Paused", value: pausedEvents.length, icon: CirclePause },
+    { label: "Planned", value: plannedEvents.length, icon: Clock3 },
+  ];
+
+  return (
+    <AdminLayout
+      session={session}
+      title="Overview"
+      description="A quick view of event activity across your organization."
+      action={
+        <Link className="primary-action" to="/dashboard/events/new">
+          <Plus /> New event
+        </Link>
+      }
+    >
+      {state.error && <div className="admin-alert">{state.error}</div>}
+      {state.loading ? (
+        <AdminLoading type="cards" />
+      ) : (
+        <>
+          <section className="overview-metrics" aria-label="Event summary">
+            {metrics.map(({ label, value, icon: Icon }) => (
+              <article className="overview-metric-card" key={label}>
+                <span><Icon /></span>
+                <div>
+                  <strong>{value}</strong>
+                  <small>{label}</small>
+                </div>
+              </article>
+            ))}
+          </section>
+
+          <section className="overview-recent-events">
+            <header>
+              <div>
+                <span>Recent activity</span>
+                <h2>Latest events</h2>
+              </div>
+              <Link to="/dashboard/events">
+                Manage all events <ArrowRight />
+              </Link>
+            </header>
+            {recentEvents.length ? (
+              <div className="overview-event-list">
+                {recentEvents.map((event) => (
+                  <article key={event.id}>
+                    <span className={`event-state ${event.status.toLowerCase()}`}>
+                      {event.status}
+                    </span>
+                    <div>
+                      <h3>{event.name}</h3>
+                      <p>
+                        {new Date(event.startAt).toLocaleDateString()} –{" "}
+                        {new Date(event.endAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Link to="/dashboard/events" aria-label={`Manage ${event.name}`}>
+                      <ArrowRight />
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <AdminEmpty
+                icon={CalendarDays}
+                title="No events yet"
+                text="Create your first event to begin tracking activity here."
+              />
+            )}
+          </section>
+        </>
+      )}
+    </AdminLayout>
+  );
+}
+
+export function EventsManagementPage({ session }) {
   const [state, setState] = useState({
     events: [],
     loading: true,
@@ -99,18 +204,12 @@ export function OrganizerOverview({ session, eventManagement = false }) {
   return (
     <AdminLayout
       session={session}
-      title={eventManagement ? "Events" : "Overview"}
-      description={
-        eventManagement
-          ? "Manage event details, publishing assets, and voting availability."
-          : "Control voting availability across your events."
-      }
+      title="Events"
+      description="Manage event details, publishing assets, and voting availability."
       action={
-        eventManagement ? (
-          <Link className="primary-action" to="/dashboard/events/new">
-            <Plus /> New event
-          </Link>
-        ) : undefined
+        <Link className="primary-action" to="/dashboard/events/new">
+          <Plus /> New event
+        </Link>
       }
     >
       {state.error && <div className="admin-alert">{state.error}</div>}
