@@ -1,21 +1,14 @@
-import { useEffect, useState } from 'react';
-import { ChevronRight, Menu, X } from 'lucide-react';
-import { Link, NavLink } from 'react-router-dom';
-import logo from '../../assets/logo.png';
+import { useState } from "react";
+import { ChevronRight, Menu, X } from "lucide-react";
+import { Link, NavLink } from "react-router-dom";
+import logo from "../../assets/logo.png";
+import { useFocusTrap } from "../../lib/useFocusTrap.js";
 
 export function PublicShell({ children }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  useEffect(() => {
-    if (!menuOpen) return undefined;
-    const closeOnEscape = (event) =>
-      event.key === 'Escape' && setMenuOpen(false);
-    document.addEventListener('keydown', closeOnEscape);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', closeOnEscape);
-      document.body.style.overflow = '';
-    };
-  }, [menuOpen]);
+  const menuRef = useFocusTrap(menuOpen, {
+    onEscape: () => setMenuOpen(false),
+  });
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
@@ -57,7 +50,11 @@ export function PublicShell({ children }) {
           <aside
             className="mobile-menu-panel"
             id="mobile-menu"
+            role="dialog"
+            aria-modal="true"
             aria-label="Site menu"
+            tabIndex="-1"
+            ref={menuRef}
           >
             <header>
               <Link
@@ -131,5 +128,3 @@ export function PublicShell({ children }) {
     </div>
   );
 }
-
-

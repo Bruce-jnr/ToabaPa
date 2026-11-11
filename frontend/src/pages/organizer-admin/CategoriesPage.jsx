@@ -98,55 +98,55 @@ export function CategoriesPage({ session }) {
           {items.map((item) => (
             <div className="category-card-group" key={item.id}>
               <article
-              className={`management-card category-drilldown-card ${selectedCategoryId === item.id ? "selected" : ""}`}
-              role="button"
-              tabIndex="0"
-              aria-expanded={selectedCategoryId === item.id}
-              onClick={() =>
-                setSelectedCategoryId((current) =>
-                  current === item.id ? "" : item.id,
-                )
-              }
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
+                className={`management-card category-drilldown-card ${selectedCategoryId === item.id ? "selected" : ""}`}
+                role="button"
+                tabIndex="0"
+                aria-expanded={selectedCategoryId === item.id}
+                onClick={() =>
                   setSelectedCategoryId((current) =>
                     current === item.id ? "" : item.id,
-                  );
+                  )
                 }
-              }}
-            >
-              <div className="management-card-icon">
-                <Tag />
-              </div>
-              <span>{item.event.name}</span>
-              <h2>{item.name}</h2>
-              <p>{item.description || "No description added."}</p>
-              <footer>
-                <strong>{item._count.candidates} candidates</strong>
-                <div className="card-actions">
-                  <button
-                    type="button"
-                    title="Edit category"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setEditing(item);
-                    }}
-                  >
-                    <Pencil />
-                  </button>
-                  <button
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      archive(item);
-                    }}
-                    type="button"
-                    title="Archive category"
-                  >
-                    <Archive />
-                  </button>
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedCategoryId((current) =>
+                      current === item.id ? "" : item.id,
+                    );
+                  }
+                }}
+              >
+                <div className="management-card-icon">
+                  <Tag />
                 </div>
-              </footer>
+                <span>{item.event.name}</span>
+                <h2>{item.name}</h2>
+                <p>{item.description || "No description added."}</p>
+                <footer>
+                  <strong>{item._count.candidates} candidates</strong>
+                  <div className="card-actions">
+                    <button
+                      type="button"
+                      title="Edit category"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setEditing(item);
+                      }}
+                    >
+                      <Pencil />
+                    </button>
+                    <button
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        archive(item);
+                      }}
+                      type="button"
+                      title="Archive category"
+                    >
+                      <Archive />
+                    </button>
+                  </div>
+                </footer>
               </article>
               {selectedCategoryId === item.id && (
                 <div className="mobile-category-results">
@@ -249,7 +249,12 @@ function CategoryCandidatesPanel({ category, candidates, onClose }) {
                   className={`result-photo ${candidate.photoUrl ? "has-photo" : ""}`}
                 >
                   {candidate.photoUrl ? (
-                    <img src={candidate.photoUrl} alt="" />
+                    <img
+                      src={candidate.photoUrl}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     candidate.name
                       .split(" ")

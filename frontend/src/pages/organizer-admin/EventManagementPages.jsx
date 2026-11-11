@@ -34,8 +34,12 @@ export function DashboardOverview({ session }) {
       );
   }, []);
 
-  const activeEvents = state.events.filter((event) => event.status === "ACTIVE");
-  const pausedEvents = state.events.filter((event) => event.status === "PAUSED");
+  const activeEvents = state.events.filter(
+    (event) => event.status === "ACTIVE",
+  );
+  const pausedEvents = state.events.filter(
+    (event) => event.status === "PAUSED",
+  );
   const plannedEvents = state.events.filter((event) =>
     ["DRAFT", "SCHEDULED"].includes(event.status),
   );
@@ -69,7 +73,9 @@ export function DashboardOverview({ session }) {
           <section className="overview-metrics" aria-label="Event summary">
             {metrics.map(({ label, value, icon: Icon }) => (
               <article className="overview-metric-card" key={label}>
-                <span><Icon /></span>
+                <span>
+                  <Icon />
+                </span>
                 <div>
                   <strong>{value}</strong>
                   <small>{label}</small>
@@ -92,7 +98,9 @@ export function DashboardOverview({ session }) {
               <div className="overview-event-list">
                 {recentEvents.map((event) => (
                   <article key={event.id}>
-                    <span className={`event-state ${event.status.toLowerCase()}`}>
+                    <span
+                      className={`event-state ${event.status.toLowerCase()}`}
+                    >
                       {event.status}
                     </span>
                     <div>
@@ -102,7 +110,10 @@ export function DashboardOverview({ session }) {
                         {new Date(event.endAt).toLocaleDateString()}
                       </p>
                     </div>
-                    <Link to="/dashboard/events" aria-label={`Manage ${event.name}`}>
+                    <Link
+                      to="/dashboard/events"
+                      aria-label={`Manage ${event.name}`}
+                    >
                       <ArrowRight />
                     </Link>
                   </article>
@@ -229,7 +240,12 @@ export function EventsManagementPage({ session }) {
                   className={`admin-event-banner ${event.bannerUrl ? "has-banner" : ""}`}
                 >
                   {event.bannerUrl ? (
-                    <img src={event.bannerUrl} alt="" />
+                    <img
+                      src={event.bannerUrl}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     <CalendarDays />
                   )}
@@ -317,6 +333,8 @@ export function EventsManagementPage({ session }) {
 function RecoveryPhonePanel({ initialPhone, onPhoneUpdated }) {
   const [open, setOpen] = useState(!initialPhone);
   const [phone, setPhone] = useState(initialPhone);
+  const [currentPhone, setCurrentPhone] = useState("");
+  const [newPhone, setNewPhone] = useState("");
   const [password, setPassword] = useState("");
   const [state, setState] = useState({
     loading: false,
@@ -329,10 +347,16 @@ function RecoveryPhonePanel({ initialPhone, onPhoneUpdated }) {
     try {
       const updated = await api("/api/v1/auth/me/phone", {
         method: "PATCH",
-        body: JSON.stringify({ phone, password }),
+        body: JSON.stringify({
+          phone: newPhone,
+          currentPhone: phone ? currentPhone : undefined,
+          password,
+        }),
       });
       setPhone(updated.phone);
       onPhoneUpdated?.(updated.phone);
+      setCurrentPhone("");
+      setNewPhone("");
       setPassword("");
       setOpen(false);
       setState({ loading: false, error: "", saved: true });
@@ -361,21 +385,52 @@ function RecoveryPhonePanel({ initialPhone, onPhoneUpdated }) {
       )}
       {open && (
         <form onSubmit={submit}>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            placeholder="024 123 4567"
-            required
-          />
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Current password"
-            required
-          />
+          {phone && (
+            <label className="settings-field" htmlFor="current-recovery-phone">
+              <span>Current full phone number</span>
+              <input
+                id="current-recovery-phone"
+                type="tel"
+                autoComplete="tel"
+                value={currentPhone}
+                onChange={(event) => setCurrentPhone(event.target.value)}
+                placeholder="Enter the complete current number"
+                aria-describedby={
+                  state.error ? "recovery-phone-error" : undefined
+                }
+                required
+              />
+            </label>
+          )}
+          <label className="settings-field" htmlFor="new-recovery-phone">
+            <span>{phone ? "New phone number" : "Recovery phone number"}</span>
+            <input
+              id="new-recovery-phone"
+              type="tel"
+              autoComplete="tel"
+              value={newPhone}
+              onChange={(event) => setNewPhone(event.target.value)}
+              placeholder="For example, 024 123 4567"
+              aria-describedby={
+                state.error ? "recovery-phone-error" : undefined
+              }
+              required
+            />
+          </label>
+          <label className="settings-field" htmlFor="recovery-password">
+            <span>Current password</span>
+            <input
+              id="recovery-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              aria-describedby={
+                state.error ? "recovery-phone-error" : undefined
+              }
+              required
+            />
+          </label>
           <button
             className="primary-action"
             type="submit"
@@ -394,7 +449,11 @@ function RecoveryPhonePanel({ initialPhone, onPhoneUpdated }) {
           )}
         </form>
       )}
-      {state.error && <span className="recovery-error">{state.error}</span>}
+      {state.error && (
+        <span id="recovery-phone-error" className="recovery-error" role="alert">
+          {state.error}
+        </span>
+      )}
       {state.saved && (
         <span className="recovery-saved">Recovery phone updated.</span>
       )}
@@ -495,14 +554,18 @@ function MfaPanel({ enabledInitially, hasPhone }) {
       )}
       {mode === "password" && (
         <form onSubmit={begin}>
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Current password"
-            required
-          />
+          <label className="settings-field" htmlFor="mfa-enable-password">
+            <span>Current password</span>
+            <input
+              id="mfa-enable-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              aria-describedby={state.error ? "mfa-error" : undefined}
+              required
+            />
+          </label>
           <button className="primary-action" disabled={state.loading}>
             Send code
           </button>
@@ -517,16 +580,22 @@ function MfaPanel({ enabledInitially, hasPhone }) {
       )}
       {mode === "verify" && (
         <form onSubmit={enable}>
-          <input
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="[0-9]{6}"
-            maxLength="6"
-            value={otp}
-            onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))}
-            placeholder="Six-digit code"
-            required
-          />
+          <label className="settings-field" htmlFor="mfa-verification-code">
+            <span>Six-digit verification code</span>
+            <input
+              id="mfa-verification-code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxLength="6"
+              value={otp}
+              onChange={(event) =>
+                setOtp(event.target.value.replace(/\D/g, ""))
+              }
+              aria-describedby={state.error ? "mfa-error" : undefined}
+              required
+            />
+          </label>
           <button className="primary-action" disabled={state.loading}>
             Verify
           </button>
@@ -534,14 +603,18 @@ function MfaPanel({ enabledInitially, hasPhone }) {
       )}
       {mode === "disable" && (
         <form onSubmit={disable}>
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Current password"
-            required
-          />
+          <label className="settings-field" htmlFor="mfa-disable-password">
+            <span>Current password</span>
+            <input
+              id="mfa-disable-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              aria-describedby={state.error ? "mfa-error" : undefined}
+              required
+            />
+          </label>
           <button className="suspend-action" disabled={state.loading}>
             Disable MFA
           </button>
@@ -559,7 +632,11 @@ function MfaPanel({ enabledInitially, hasPhone }) {
           Add a trusted recovery phone before enabling MFA.
         </span>
       )}
-      {state.error && <span className="recovery-error">{state.error}</span>}
+      {state.error && (
+        <span id="mfa-error" className="recovery-error" role="alert">
+          {state.error}
+        </span>
+      )}
     </section>
   );
 }
@@ -743,9 +820,7 @@ function EventEditForm({ event, onClose, onSaved }) {
             type="number"
             min="1"
             value={form.minimumVotes}
-            onChange={(e) =>
-              setForm({ ...form, minimumVotes: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, minimumVotes: e.target.value })}
             required
           />
         </label>

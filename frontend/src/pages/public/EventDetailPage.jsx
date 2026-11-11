@@ -1,18 +1,23 @@
-import { useState } from 'react';
-import { AlertCircle, CalendarDays, Users, Vote } from 'lucide-react';
-import { useParams } from 'react-router-dom';
-import { PublicShell as Shell } from '../../components/layout/PublicShell.jsx';
-import { ErrorState, LoadingCards, SearchForm, StatusBadge } from '../../components/public/EventUi.jsx';
-import { VoteDialog } from '../../components/voting/VoteDialog.jsx';
-import { formatDate } from '../../lib/format.js';
-import { usePublicData } from '../../lib/publicApi.js';
+import { useState } from "react";
+import { AlertCircle, CalendarDays, Users, Vote } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { PublicShell as Shell } from "../../components/layout/PublicShell.jsx";
+import {
+  ErrorState,
+  LoadingCards,
+  SearchForm,
+  StatusBadge,
+} from "../../components/public/EventUi.jsx";
+import { VoteDialog } from "../../components/voting/VoteDialog.jsx";
+import { formatDate } from "../../lib/format.js";
+import { usePublicData } from "../../lib/publicApi.js";
 
 export function EventDetailPage() {
   const { slug } = useParams();
   const event = usePublicData(
     `/api/v1/public/events/${encodeURIComponent(slug)}`,
   );
-  const [category, setCategory] = useState('all');
+  const [category, setCategory] = useState("all");
   const [voteCandidate, setVoteCandidate] = useState(null);
   if (event.loading)
     return (
@@ -32,17 +37,17 @@ export function EventDetailPage() {
     );
   const data = event.data;
   const visibleCategories =
-    category === 'all'
+    category === "all"
       ? data.categories
       : data.categories.filter((item) => item.id === category);
-  const price = (data.defaultVotePrice / 100).toLocaleString('en-GH', {
-    style: 'currency',
+  const price = (data.defaultVotePrice / 100).toLocaleString("en-GH", {
+    style: "currency",
     currency: data.currency,
   });
   return (
     <Shell>
       <section
-        className={`event-detail-hero ${data.bannerUrl ? 'has-banner' : ''}`}
+        className={`event-detail-hero ${data.bannerUrl ? "has-banner" : ""}`}
         style={
           data.bannerUrl
             ? { backgroundImage: `url(${data.bannerUrl})` }
@@ -56,15 +61,15 @@ export function EventDetailPage() {
           <h1>{data.name}</h1>
           <p>
             {data.description ||
-              'Explore the categories and contestants in this event.'}
+              "Explore the categories and contestants in this event."}
           </p>
           <div className="event-detail-meta">
             <span>
               <CalendarDays />
-              {data.publicStatus === 'live'
+              {data.publicStatus === "live"
                 ? `Voting ends ${formatDate(data.endAt)}`
-                : data.publicStatus === 'paused'
-                  ? 'Voting is temporarily paused'
+                : data.publicStatus === "paused"
+                  ? "Voting is temporarily paused"
                   : `Voting starts ${formatDate(data.startAt)}`}
             </span>
             <span>
@@ -79,7 +84,7 @@ export function EventDetailPage() {
         </div>
       </section>
       <section className="contestant-section">
-        {data.publicStatus === 'paused' && (
+        {data.publicStatus === "paused" && (
           <div className="voting-paused-notice">
             <AlertCircle />
             <div>
@@ -104,15 +109,15 @@ export function EventDetailPage() {
           aria-label="Contestant categories"
         >
           <button
-            className={category === 'all' ? 'active' : ''}
-            onClick={() => setCategory('all')}
+            className={category === "all" ? "active" : ""}
+            onClick={() => setCategory("all")}
             type="button"
           >
             All contestants <span>{data.candidates.length}</span>
           </button>
           {data.categories.map((item) => (
             <button
-              className={category === item.id ? 'active' : ''}
+              className={category === item.id ? "active" : ""}
               onClick={() => setCategory(item.id)}
               type="button"
               key={item.id}
@@ -171,9 +176,9 @@ function CategoryContestants({
       left.name.localeCompare(right.name),
   );
   const resultsVisible = [
-    'EXACT_TOTALS',
-    'PERCENTAGES',
-    'RANKING_ONLY',
+    "EXACT_TOTALS",
+    "PERCENTAGES",
+    "RANKING_ONLY",
   ].includes(result?.visibility);
   return (
     <section className="category-contestant-group">
@@ -195,9 +200,9 @@ function CategoryContestants({
                   candidate.result?.percentage ??
                   (result?.totalVotes ? (votes / result.totalVotes) * 100 : 0);
                 const initials = candidate.name
-                  .split(' ')
+                  .split(" ")
                   .map((part) => part[0])
-                  .join('')
+                  .join("")
                   .slice(0, 2);
                 return (
                   <article
@@ -208,10 +213,15 @@ function CategoryContestants({
                       {candidate.result?.rank ?? index + 1}
                     </strong>
                     <span
-                      className={`result-photo ${candidate.photoUrl ? 'has-photo' : ''}`}
+                      className={`result-photo ${candidate.photoUrl ? "has-photo" : ""}`}
                     >
                       {candidate.photoUrl ? (
-                        <img src={candidate.photoUrl} alt="" />
+                        <img
+                          src={candidate.photoUrl}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                        />
                       ) : (
                         initials
                       )}
@@ -225,18 +235,18 @@ function CategoryContestants({
                     </div>
                     <div className="result-total">
                       <strong>
-                        {result.visibility === 'EXACT_TOTALS'
+                        {result.visibility === "EXACT_TOTALS"
                           ? votes.toLocaleString()
-                          : result.visibility === 'PERCENTAGES'
+                          : result.visibility === "PERCENTAGES"
                             ? `${percentage.toFixed(1)}%`
                             : `#${candidate.result?.rank ?? index + 1}`}
                       </strong>
                       <small>
-                        {result.visibility === 'EXACT_TOTALS'
+                        {result.visibility === "EXACT_TOTALS"
                           ? `${percentage.toFixed(1)}%`
-                          : result.visibility === 'PERCENTAGES'
+                          : result.visibility === "PERCENTAGES"
                             ? `Rank #${candidate.result?.rank ?? index + 1}`
-                            : 'Rank'}
+                            : "Rank"}
                       </small>
                     </div>
                   </article>
@@ -255,15 +265,20 @@ function CategoryContestants({
         <div className="contestant-grid">
           {candidates.map((candidate) => {
             const initials = candidate.name
-              .split(' ')
+              .split(" ")
               .map((part) => part[0])
-              .join('')
+              .join("")
               .slice(0, 2);
             return (
               <article className="contestant-card" key={candidate.id}>
                 <div className="contestant-portrait">
                   {candidate.photoUrl ? (
-                    <img src={candidate.photoUrl} alt={candidate.name} />
+                    <img
+                      src={candidate.photoUrl}
+                      alt={candidate.name}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     <span>{initials}</span>
                   )}
@@ -287,20 +302,20 @@ function CategoryContestants({
                   <p>
                     {candidate.slogan ||
                       candidate.biography ||
-                      'Support this contestant in the event.'}
+                      "Support this contestant in the event."}
                   </p>
                   <button
                     className="primary-action"
                     type="button"
                     onClick={() => onVote(candidate)}
-                    disabled={eventStatus !== 'live'}
+                    disabled={eventStatus !== "live"}
                   >
                     <Vote />
-                    {eventStatus === 'live'
-                      ? 'Vote now'
-                      : eventStatus === 'paused'
-                        ? 'Voting paused'
-                        : 'Voting unavailable'}
+                    {eventStatus === "live"
+                      ? "Vote now"
+                      : eventStatus === "paused"
+                        ? "Voting paused"
+                        : "Voting unavailable"}
                   </button>
                 </div>
               </article>
@@ -317,5 +332,3 @@ function CategoryContestants({
     </section>
   );
 }
-
-

@@ -94,7 +94,7 @@ export function CandidatesPage({ session }) {
         <AdminLoading />
       ) : items.length ? (
         <div className="candidate-table-wrap">
-          <table className="admin-table">
+          <table className="admin-table candidates-table">
             <thead>
               <tr>
                 <th>Candidate</th>
@@ -114,7 +114,12 @@ export function CandidatesPage({ session }) {
                     <div className="table-person">
                       <span className={item.photoUrl ? "has-photo" : ""}>
                         {item.photoUrl ? (
-                          <img src={item.photoUrl} alt="" />
+                          <img
+                            src={item.photoUrl}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                          />
                         ) : (
                           item.name
                             .split(" ")
@@ -124,6 +129,9 @@ export function CandidatesPage({ session }) {
                         )}
                       </span>
                       <strong>{item.name}</strong>
+                      <small className="mobile-candidate-context">
+                        {item.category.name} · {item.event.name}
+                      </small>
                     </div>
                   </td>
                   <td>

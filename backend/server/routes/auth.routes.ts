@@ -1,12 +1,12 @@
-import argon2 from 'argon2';
-import { MembershipStatus } from '@prisma/client';
-import { randomInt } from 'node:crypto';
-import { Router } from 'express';
-import { z } from 'zod';
+import argon2 from "argon2";
+import { MembershipStatus } from "@prisma/client";
+import { randomInt } from "node:crypto";
+import { Router } from "express";
+import { z } from "zod";
 
 function createOpaqueChallengeId() {
-  const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz';
-  let id = 'c';
+  const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz";
+  let id = "c";
   for (let index = 0; index < 24; index += 1)
     id += alphabet[randomInt(alphabet.length)];
   return id;
@@ -15,29 +15,29 @@ import {
   createSession,
   revokeSession,
   SESSION_COOKIE,
-} from '../auth/session.js';
-import { env } from '../config/env.js';
-import { prisma } from '../db/prisma.js';
-import { AppError } from '../errors/app-error.js';
-import { type AuthenticatedRequest, requireAuth } from '../middleware/auth.js';
-import { normalizeGhanaPhone } from '../domain/phone.js';
-import { auditRequestContext } from '../security/audit-request.js';
+} from "../auth/session.js";
+import { env } from "../config/env.js";
+import { prisma } from "../db/prisma.js";
+import { AppError } from "../errors/app-error.js";
+import { type AuthenticatedRequest, requireAuth } from "../middleware/auth.js";
+import { normalizeGhanaPhone } from "../domain/phone.js";
+import { auditRequestContext } from "../security/audit-request.js";
 import {
   sendPasswordResetOtp,
   verifyPasswordResetOtp,
-} from '../messaging/arkesel-otp.provider.js';
+} from "../messaging/arkesel-otp.provider.js";
 import {
   sendLoginOtp,
   verifyLoginOtp,
-} from '../messaging/arkesel-otp.provider.js';
+} from "../messaging/arkesel-otp.provider.js";
 
 export const authRouter = Router();
-const portalSchema = z.enum(['superadmin', 'administrator']);
+const portalSchema = z.enum(["superadmin", "administrator"]);
 const loginSchema = z.object({
   identifier: z.string().trim().min(3).max(254),
   password: z
     .string()
-    .min(6, 'Password must contain at least 6 characters.')
+    .min(6, "Password must contain at least 6 characters.")
     .max(200),
   portal: portalSchema,
 });
@@ -45,24 +45,24 @@ const newPasswordSchema = z
   .string()
   .min(10)
   .max(200)
-  .regex(/[a-z]/, 'Include a lowercase letter.')
-  .regex(/[A-Z]/, 'Include an uppercase letter.')
-  .regex(/\d/, 'Include a number.');
+  .regex(/[a-z]/, "Include a lowercase letter.")
+  .regex(/[A-Z]/, "Include an uppercase letter.")
+  .regex(/\d/, "Include a number.");
 const cookieOptions = {
   httpOnly: true,
-  sameSite: 'lax' as const,
-  secure: env.NODE_ENV === 'production',
+  sameSite: "lax" as const,
+  secure: env.NODE_ENV === "production",
   maxAge: 8 * 60 * 60 * 1000,
-  path: '/',
+  path: "/",
 };
 
-authRouter.post('/login', async (req, res, next) => {
+authRouter.post("/login", async (req, res, next) => {
   try {
     const input = loginSchema.parse(req.body);
     const identifier = input.identifier.toLowerCase();
     const user = await prisma.user.findFirst({
       where:
-        input.portal === 'superadmin'
+        input.portal === "superadmin"
           ? { email: identifier }
           : { username: identifier },
       include: {
@@ -76,36 +76,36 @@ authRouter.post('/login', async (req, res, next) => {
     if (!user || !(await argon2.verify(user.passwordHash, input.password))) {
       throw new AppError(
         401,
-        'INVALID_CREDENTIALS',
-        'Email or password is incorrect.',
+        "INVALID_CREDENTIALS",
+        "Email or password is incorrect.",
       );
     }
     const membership = user.memberships[0];
     if (!membership)
       throw new AppError(
         403,
-        'NO_ORGANIZATION_ACCESS',
-        'No active organization membership was found.',
+        "NO_ORGANIZATION_ACCESS",
+        "No active organization membership was found.",
       );
     const permitted =
-      input.portal === 'superadmin'
-        ? user.globalRole === 'SUPER_ADMIN'
-        : user.globalRole !== 'SUPER_ADMIN' &&
-          membership.role === 'EVENT_ADMIN';
+      input.portal === "superadmin"
+        ? user.globalRole === "SUPER_ADMIN"
+        : user.globalRole !== "SUPER_ADMIN" &&
+          membership.role === "EVENT_ADMIN";
     if (!permitted)
       throw new AppError(
         403,
-        'WRONG_LOGIN_PORTAL',
-        input.portal === 'superadmin'
-          ? 'Use a superadmin account for this portal.'
-          : 'Use an assigned event administrator account for this portal.',
+        "WRONG_LOGIN_PORTAL",
+        input.portal === "superadmin"
+          ? "Use a superadmin account for this portal."
+          : "Use an assigned event administrator account for this portal.",
       );
     if (user.twoFactorEnabled) {
       if (!user.phone)
         throw new AppError(
           409,
-          'MFA_PHONE_REQUIRED',
-          'A recovery phone is required for MFA.',
+          "MFA_PHONE_REQUIRED",
+          "A recovery phone is required for MFA.",
         );
       await prisma.loginChallenge.updateMany({
         where: { userId: user.id, consumedAt: null },
@@ -137,32 +137,30 @@ authRouter.post('/login', async (req, res, next) => {
       sessionVersion: user.sessionVersion,
       globalRole: user.globalRole,
     });
-    res
-      .cookie(SESSION_COOKIE, token, cookieOptions)
-      .json({
-        success: true,
-        data: {
-          user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            twoFactorEnabled: user.twoFactorEnabled,
-          },
-          organization: {
-            id: membership.organization.id,
-            name: membership.organization.name,
-          },
-          role: membership.role,
-          globalRole: user.globalRole,
+    res.cookie(SESSION_COOKIE, token, cookieOptions).json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          twoFactorEnabled: user.twoFactorEnabled,
         },
-      });
+        organization: {
+          id: membership.organization.id,
+          name: membership.organization.name,
+        },
+        role: membership.role,
+        globalRole: user.globalRole,
+      },
+    });
   } catch (error) {
     next(error);
   }
 });
 
-authRouter.post('/login/mfa', async (req, res, next) => {
+authRouter.post("/login/mfa", async (req, res, next) => {
   try {
     const input = z
       .object({
@@ -192,8 +190,8 @@ authRouter.post('/login/mfa', async (req, res, next) => {
     )
       throw new AppError(
         400,
-        'INVALID_MFA_CHALLENGE',
-        'The sign-in code is invalid or has expired.',
+        "INVALID_MFA_CHALLENGE",
+        "The sign-in code is invalid or has expired.",
       );
     const attempt = await prisma.loginChallenge.updateMany({
       where: {
@@ -207,34 +205,34 @@ authRouter.post('/login/mfa', async (req, res, next) => {
     if (attempt.count !== 1)
       throw new AppError(
         400,
-        'INVALID_MFA_CHALLENGE',
-        'The sign-in code is invalid or has expired.',
+        "INVALID_MFA_CHALLENGE",
+        "The sign-in code is invalid or has expired.",
       );
     if (!(await verifyLoginOtp(challenge.phone, input.otp)))
       throw new AppError(
         400,
-        'INVALID_MFA_OTP',
-        'The sign-in code is invalid or has expired.',
+        "INVALID_MFA_OTP",
+        "The sign-in code is invalid or has expired.",
       );
     const membership = challenge.user.memberships[0];
     if (!membership)
       throw new AppError(
         403,
-        'NO_ORGANIZATION_ACCESS',
-        'No active organization membership was found.',
+        "NO_ORGANIZATION_ACCESS",
+        "No active organization membership was found.",
       );
     const permitted =
-      input.portal === 'superadmin'
-        ? challenge.user.globalRole === 'SUPER_ADMIN'
-        : challenge.user.globalRole !== 'SUPER_ADMIN' &&
-          membership.role === 'EVENT_ADMIN';
+      input.portal === "superadmin"
+        ? challenge.user.globalRole === "SUPER_ADMIN"
+        : challenge.user.globalRole !== "SUPER_ADMIN" &&
+          membership.role === "EVENT_ADMIN";
     if (!permitted)
       throw new AppError(
         403,
-        'WRONG_LOGIN_PORTAL',
-        input.portal === 'superadmin'
-          ? 'Use a superadmin account for this portal.'
-          : 'Use an assigned event administrator account for this portal.',
+        "WRONG_LOGIN_PORTAL",
+        input.portal === "superadmin"
+          ? "Use a superadmin account for this portal."
+          : "Use an assigned event administrator account for this portal.",
       );
     const consumed = await prisma.loginChallenge.updateMany({
       where: { id: challenge.id, consumedAt: null },
@@ -243,8 +241,8 @@ authRouter.post('/login/mfa', async (req, res, next) => {
     if (consumed.count !== 1)
       throw new AppError(
         400,
-        'INVALID_MFA_CHALLENGE',
-        'The sign-in code is invalid or has expired.',
+        "INVALID_MFA_CHALLENGE",
+        "The sign-in code is invalid or has expired.",
       );
     const token = await createSession({
       userId: challenge.user.id,
@@ -253,39 +251,37 @@ authRouter.post('/login/mfa', async (req, res, next) => {
       sessionVersion: challenge.user.sessionVersion,
       globalRole: challenge.user.globalRole,
     });
-    res
-      .cookie(SESSION_COOKIE, token, cookieOptions)
-      .json({
-        success: true,
-        data: {
-          user: {
-            id: challenge.user.id,
-            name: challenge.user.name,
-            email: challenge.user.email,
-            phone: challenge.user.phone,
-            twoFactorEnabled: challenge.user.twoFactorEnabled,
-          },
-          organization: {
-            id: membership.organization.id,
-            name: membership.organization.name,
-          },
-          role: membership.role,
-          globalRole: challenge.user.globalRole,
+    res.cookie(SESSION_COOKIE, token, cookieOptions).json({
+      success: true,
+      data: {
+        user: {
+          id: challenge.user.id,
+          name: challenge.user.name,
+          email: challenge.user.email,
+          phone: challenge.user.phone,
+          twoFactorEnabled: challenge.user.twoFactorEnabled,
         },
-      });
+        organization: {
+          id: membership.organization.id,
+          name: membership.organization.name,
+        },
+        role: membership.role,
+        globalRole: challenge.user.globalRole,
+      },
+    });
   } catch (error) {
     next(error);
   }
 });
 
-authRouter.post('/logout', requireAuth, async (req, res) => {
+authRouter.post("/logout", requireAuth, async (req, res) => {
   await revokeSession((req as AuthenticatedRequest).auth.sessionId);
   res
     .clearCookie(SESSION_COOKIE, { ...cookieOptions, maxAge: undefined })
     .json({ success: true, data: null });
 });
 
-authRouter.post('/password-reset/request', async (req, res, next) => {
+authRouter.post("/password-reset/request", async (req, res, next) => {
   try {
     const { email } = z.object({ email: z.string().email() }).parse(req.body);
     const user = await prisma.user.findUnique({
@@ -302,7 +298,7 @@ authRouter.post('/password-reset/request', async (req, res, next) => {
       res.json({
         success: true,
         data: { challengeId },
-        message: 'If the account has a recovery phone, a code has been sent.',
+        message: "If the account has a recovery phone, a code has been sent.",
       });
       return;
     }
@@ -313,18 +309,22 @@ authRouter.post('/password-reset/request', async (req, res, next) => {
         expiresAt: { gt: new Date() },
         createdAt: { gt: new Date(Date.now() - 60_000) },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
     if (recentChallenge) {
       res.json({
         success: true,
         data: { challengeId: recentChallenge.id },
-        message: 'If the account has a recovery phone, a code has been sent.',
+        message: "If the account has a recovery phone, a code has been sent.",
       });
       return;
     }
     await prisma.passwordResetChallenge.updateMany({
-      where: { userId: user.id, consumedAt: null, expiresAt: { lte: new Date() } },
+      where: {
+        userId: user.id,
+        consumedAt: null,
+        expiresAt: { lte: new Date() },
+      },
       data: { consumedAt: new Date() },
     });
     const challenge = await prisma.passwordResetChallenge.create({
@@ -345,14 +345,14 @@ authRouter.post('/password-reset/request', async (req, res, next) => {
     res.json({
       success: true,
       data: { challengeId: challenge.id },
-      message: 'If the account has a recovery phone, a code has been sent.',
+      message: "If the account has a recovery phone, a code has been sent.",
     });
   } catch (error) {
     next(error);
   }
 });
 
-authRouter.post('/password-reset/confirm', async (req, res, next) => {
+authRouter.post("/password-reset/confirm", async (req, res, next) => {
   try {
     const input = z
       .object({
@@ -381,8 +381,8 @@ authRouter.post('/password-reset/confirm', async (req, res, next) => {
     )
       throw new AppError(
         400,
-        'INVALID_RESET_CHALLENGE',
-        'The reset code is invalid or has expired.',
+        "INVALID_RESET_CHALLENGE",
+        "The reset code is invalid or has expired.",
       );
     const attempt = await prisma.passwordResetChallenge.updateMany({
       where: {
@@ -396,14 +396,14 @@ authRouter.post('/password-reset/confirm', async (req, res, next) => {
     if (attempt.count !== 1)
       throw new AppError(
         400,
-        'INVALID_RESET_CHALLENGE',
-        'The reset code is invalid or has expired.',
+        "INVALID_RESET_CHALLENGE",
+        "The reset code is invalid or has expired.",
       );
     if (!(await verifyPasswordResetOtp(challenge.phone, input.otp)))
       throw new AppError(
         400,
-        'INVALID_RESET_OTP',
-        'The reset code is invalid or has expired.',
+        "INVALID_RESET_OTP",
+        "The reset code is invalid or has expired.",
       );
     const passwordHash = await argon2.hash(input.password, {
       type: argon2.argon2id,
@@ -421,8 +421,8 @@ authRouter.post('/password-reset/confirm', async (req, res, next) => {
       if (consumed.count !== 1)
         throw new AppError(
           400,
-          'INVALID_RESET_CHALLENGE',
-          'The reset code is invalid or has expired.',
+          "INVALID_RESET_CHALLENGE",
+          "The reset code is invalid or has expired.",
         );
       await tx.user.update({
         where: { id: challenge.userId },
@@ -437,8 +437,8 @@ authRouter.post('/password-reset/confirm', async (req, res, next) => {
           organizationId: membership?.organizationId,
           userId: challenge.userId,
           ...auditRequestContext(req),
-          action: 'PASSWORD_RESET_COMPLETED',
-          resourceType: 'User',
+          action: "PASSWORD_RESET_COMPLETED",
+          resourceType: "User",
           resourceId: challenge.userId,
         },
       });
@@ -448,14 +448,14 @@ authRouter.post('/password-reset/confirm', async (req, res, next) => {
       .json({
         success: true,
         data: null,
-        message: 'Password reset successfully.',
+        message: "Password reset successfully.",
       });
   } catch (error) {
     next(error);
   }
 });
 
-authRouter.post('/mfa/setup', requireAuth, async (req, res, next) => {
+authRouter.post("/mfa/setup", requireAuth, async (req, res, next) => {
   try {
     const { password } = z
       .object({ password: z.string().min(8).max(200) })
@@ -467,14 +467,14 @@ authRouter.post('/mfa/setup', requireAuth, async (req, res, next) => {
     if (!user.phone)
       throw new AppError(
         409,
-        'MFA_PHONE_REQUIRED',
-        'Add a recovery phone before enabling MFA.',
+        "MFA_PHONE_REQUIRED",
+        "Add a recovery phone before enabling MFA.",
       );
     if (!(await argon2.verify(user.passwordHash, password)))
       throw new AppError(
         401,
-        'INVALID_PASSWORD',
-        'Current password is incorrect.',
+        "INVALID_PASSWORD",
+        "Current password is incorrect.",
       );
     const challenge = await prisma.loginChallenge.create({
       data: {
@@ -495,7 +495,7 @@ authRouter.post('/mfa/setup', requireAuth, async (req, res, next) => {
   }
 });
 
-authRouter.post('/mfa/enable', requireAuth, async (req, res, next) => {
+authRouter.post("/mfa/enable", requireAuth, async (req, res, next) => {
   try {
     const input = z
       .object({
@@ -514,8 +514,8 @@ authRouter.post('/mfa/enable', requireAuth, async (req, res, next) => {
     )
       throw new AppError(
         400,
-        'INVALID_MFA_CHALLENGE',
-        'The MFA code is invalid or has expired.',
+        "INVALID_MFA_CHALLENGE",
+        "The MFA code is invalid or has expired.",
       );
     const attempt = await prisma.loginChallenge.updateMany({
       where: {
@@ -530,14 +530,14 @@ authRouter.post('/mfa/enable', requireAuth, async (req, res, next) => {
     if (attempt.count !== 1)
       throw new AppError(
         400,
-        'INVALID_MFA_CHALLENGE',
-        'The MFA code is invalid or has expired.',
+        "INVALID_MFA_CHALLENGE",
+        "The MFA code is invalid or has expired.",
       );
     if (!(await verifyLoginOtp(challenge.phone, input.otp)))
       throw new AppError(
         400,
-        'INVALID_MFA_OTP',
-        'The MFA code is invalid or has expired.',
+        "INVALID_MFA_OTP",
+        "The MFA code is invalid or has expired.",
       );
     await prisma.$transaction(async (tx) => {
       const consumed = await tx.loginChallenge.updateMany({
@@ -551,8 +551,8 @@ authRouter.post('/mfa/enable', requireAuth, async (req, res, next) => {
       if (consumed.count !== 1)
         throw new AppError(
           400,
-          'INVALID_MFA_CHALLENGE',
-          'The MFA code is invalid or has expired.',
+          "INVALID_MFA_CHALLENGE",
+          "The MFA code is invalid or has expired.",
         );
       await tx.user.update({
         where: { id: auth.userId },
@@ -565,7 +565,7 @@ authRouter.post('/mfa/enable', requireAuth, async (req, res, next) => {
   }
 });
 
-authRouter.delete('/mfa', requireAuth, async (req, res, next) => {
+authRouter.delete("/mfa", requireAuth, async (req, res, next) => {
   try {
     const { password } = z
       .object({ password: z.string().min(8).max(200) })
@@ -577,8 +577,8 @@ authRouter.delete('/mfa', requireAuth, async (req, res, next) => {
     if (!(await argon2.verify(user.passwordHash, password)))
       throw new AppError(
         401,
-        'INVALID_PASSWORD',
-        'Current password is incorrect.',
+        "INVALID_PASSWORD",
+        "Current password is incorrect.",
       );
     await prisma.user.update({
       where: { id: auth.userId },
@@ -593,11 +593,12 @@ authRouter.delete('/mfa', requireAuth, async (req, res, next) => {
   }
 });
 
-authRouter.patch('/me/phone', requireAuth, async (req, res, next) => {
+authRouter.patch("/me/phone", requireAuth, async (req, res, next) => {
   try {
     const input = z
       .object({
         phone: z.string().min(7).max(20),
+        currentPhone: z.string().min(7).max(20).optional(),
         password: z.string().min(8).max(200),
       })
       .parse(req.body);
@@ -608,8 +609,18 @@ authRouter.patch('/me/phone', requireAuth, async (req, res, next) => {
     if (!(await argon2.verify(user.passwordHash, input.password)))
       throw new AppError(
         401,
-        'INVALID_PASSWORD',
-        'Current password is incorrect.',
+        "INVALID_PASSWORD",
+        "Current password is incorrect.",
+      );
+    if (
+      user.phone &&
+      (!input.currentPhone ||
+        normalizeGhanaPhone(input.currentPhone) !== user.phone)
+    )
+      throw new AppError(
+        401,
+        "INVALID_CURRENT_PHONE",
+        "The current phone number does not match this account.",
       );
     const phone = normalizeGhanaPhone(input.phone);
     const updated = await prisma.user.update({
@@ -620,14 +631,14 @@ authRouter.patch('/me/phone', requireAuth, async (req, res, next) => {
     res.json({
       success: true,
       data: updated,
-      message: 'Recovery phone updated.',
+      message: "Recovery phone updated.",
     });
   } catch (error) {
     next(error);
   }
 });
 
-authRouter.get('/me', requireAuth, async (req, res, next) => {
+authRouter.get("/me", requireAuth, async (req, res, next) => {
   try {
     const auth = (req as AuthenticatedRequest).auth;
     const [user, organization] = await Promise.all([

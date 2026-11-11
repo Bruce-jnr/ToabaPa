@@ -154,8 +154,8 @@ export function EventAdministratorsPage({ session }) {
       {state.loading ? (
         <AdminLoading />
       ) : items.length ? (
-        <div className="candidate-table-wrap">
-          <table className="admin-table">
+        <div className="candidate-table-wrap administrators-table-wrap">
+          <table className="admin-table registered-administrators-table">
             <thead>
               <tr>
                 <th>Administrator</th>
@@ -168,21 +168,24 @@ export function EventAdministratorsPage({ session }) {
             <tbody>
               {items.map((item) => (
                 <tr key={item.id}>
-                  <td>
+                  <td
+                    className="administrator-identity"
+                    data-label="Administrator"
+                  >
                     <strong>{item.user?.name || "Administrator"}</strong>
                     <small>{item.user?.email || "No email"}</small>
                   </td>
-                  <td>
+                  <td data-label="Username">
                     <b className="table-reference">
                       {item.user?.username || "Not configured"}
                     </b>
                   </td>
-                  <td>
+                  <td data-label="Assigned events">
                     {(item.events || [])
                       .map((event) => event.name)
                       .join(", ") || "No events assigned"}
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <span
                       className={`payment-status ${item.status === "ACTIVE" ? "paid" : "failed"}`}
                     >
@@ -190,7 +193,7 @@ export function EventAdministratorsPage({ session }) {
                       {item.status}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Access">
                     <button
                       className="secondary-action"
                       type="button"

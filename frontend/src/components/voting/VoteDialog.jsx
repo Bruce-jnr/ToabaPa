@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -6,39 +6,36 @@ import {
   CreditCard,
   LoaderCircle,
   X,
-} from 'lucide-react';
+} from "lucide-react";
+import { useFocusTrap } from "../../lib/useFocusTrap.js";
 
 export function VoteDialog({ candidate, event, onClose }) {
   const quickVotes = [1, 5, 10, 20, 50, 100, 500];
   const [quantity, setQuantity] = useState(
     Math.max(1, event.minimumVotes || 1),
   );
-  const [custom, setCustom] = useState('');
-  const [contact, setContact] = useState({ phone: '' });
+  const [custom, setCustom] = useState("");
+  const [contact, setContact] = useState({ phone: "" });
   const [order, setOrder] = useState(null);
   const [state, setState] = useState({
-    phase: 'details',
+    phase: "details",
     loading: false,
-    error: '',
+    error: "",
   });
-
-  useEffect(() => {
-    function closeOnEscape(keyEvent) {
-      if (keyEvent.key === 'Escape' && !state.loading) onClose();
-    }
-    document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
-  }, [onClose, state.loading]);
+  const dialogRef = useFocusTrap(true, {
+    onEscape: onClose,
+    allowEscape: !state.loading,
+  });
 
   function chooseQuantity(value) {
     setQuantity(value);
-    setCustom('');
-    setState((current) => ({ ...current, error: '' }));
+    setCustom("");
+    setState((current) => ({ ...current, error: "" }));
   }
   function setCustomQuantity(value) {
     setCustom(value);
     setQuantity(Number(value));
-    setState((current) => ({ ...current, error: '' }));
+    setState((current) => ({ ...current, error: "" }));
   }
 
   async function createOrder(formEvent) {
@@ -49,51 +46,51 @@ export function VoteDialog({ candidate, event, onClose }) {
       quantity > event.maximumVotesPerTransaction
     ) {
       setState({
-        phase: 'details',
+        phase: "details",
         loading: false,
         error: `Choose between ${event.minimumVotes} and ${event.maximumVotesPerTransaction} votes.`,
       });
       return;
     }
-    setState({ phase: 'details', loading: true, error: '' });
+    setState({ phase: "details", loading: true, error: "" });
     try {
-      const response = await fetch('/api/v1/vote-orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/v1/vote-orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           candidateId: candidate.id,
           quantity,
           phone: contact.phone,
-          channel: 'WEB',
+          channel: "WEB",
         }),
       });
       const payload = await response.json();
       if (!response.ok || !payload.success)
         throw new Error(
-          payload?.error?.message || 'Unable to create vote order.',
+          payload?.error?.message || "Unable to create vote order.",
         );
       setOrder(payload.data);
-      setState({ phase: 'review', loading: false, error: '' });
+      setState({ phase: "review", loading: false, error: "" });
     } catch (error) {
-      setState({ phase: 'details', loading: false, error: error.message });
+      setState({ phase: "details", loading: false, error: error.message });
     }
   }
 
   async function pay() {
-    setState({ phase: 'review', loading: true, error: '' });
+    setState({ phase: "review", loading: true, error: "" });
     try {
       const response = await fetch(
         `/api/v1/payments/${encodeURIComponent(order.paymentReference)}/initialize`,
-        { method: 'POST' },
+        { method: "POST" },
       );
       const payload = await response.json();
       if (!response.ok || !payload.success)
         throw new Error(
-          payload?.error?.message || 'Unable to initialize payment.',
+          payload?.error?.message || "Unable to initialize payment.",
         );
       window.location.assign(payload.data.authorizationUrl);
     } catch (error) {
-      setState({ phase: 'review', loading: false, error: error.message });
+      setState({ phase: "review", loading: false, error: error.message });
     }
   }
 
@@ -112,6 +109,8 @@ export function VoteDialog({ candidate, event, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="vote-dialog-title"
+        tabIndex="-1"
+        ref={dialogRef}
       >
         <header>
           <div>
@@ -128,14 +127,14 @@ export function VoteDialog({ candidate, event, onClose }) {
             <X />
           </button>
         </header>
-        {state.phase === 'details' ? (
+        {state.phase === "details" ? (
           <form onSubmit={createOrder}>
             <div className="vote-candidate-summary">
               <div>
                 {candidate.name
-                  .split(' ')
+                  .split(" ")
                   .map((part) => part[0])
-                  .join('')
+                  .join("")
                   .slice(0, 2)}
               </div>
               <span>
@@ -148,7 +147,7 @@ export function VoteDialog({ candidate, event, onClose }) {
               <div>
                 {quickVotes.map((value) => (
                   <button
-                    className={quantity === value && !custom ? 'active' : ''}
+                    className={quantity === value && !custom ? "active" : ""}
                     onClick={() => chooseQuantity(value)}
                     type="button"
                     key={value}
@@ -198,7 +197,7 @@ export function VoteDialog({ candidate, event, onClose }) {
               <div>
                 <small>Estimated total</small>
                 <strong>
-                  {event.currency}{' '}
+                  {event.currency}{" "}
                   {(((quantity || 0) * event.defaultVotePrice) / 100).toFixed(
                     2,
                   )}
@@ -263,7 +262,7 @@ export function VoteDialog({ candidate, event, onClose }) {
                 className="secondary-action"
                 disabled={state.loading}
                 onClick={() =>
-                  setState({ phase: 'details', loading: false, error: '' })
+                  setState({ phase: "details", loading: false, error: "" })
                 }
                 type="button"
               >

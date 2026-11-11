@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   CalendarDays,
@@ -6,12 +6,12 @@ import {
   Search,
   Trophy,
   Users,
-} from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { formatDate } from '../../lib/format.js';
+} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { formatDate } from "../../lib/format.js";
 
 export function SearchForm({
-  initialValue = '',
+  initialValue = "",
   compact = false,
   focus = false,
 }) {
@@ -24,12 +24,12 @@ export function SearchForm({
   function submit(event) {
     event.preventDefault();
     navigate(
-      `/events${value.trim() ? `?search=${encodeURIComponent(value.trim())}` : ''}`,
+      `/events${value.trim() ? `?search=${encodeURIComponent(value.trim())}` : ""}`,
     );
   }
   return (
     <form
-      className={`search-form ${compact ? 'compact' : ''}`}
+      className={`search-form ${compact ? "compact" : ""}`}
       onSubmit={submit}
       role="search"
     >
@@ -57,7 +57,7 @@ export function StatusBadge({ status }) {
   return (
     <span className={`status-badge ${status}`}>
       <span />
-      {status === 'live' ? 'Live' : status}
+      {status === "live" ? "Live" : status}
     </span>
   );
 }
@@ -65,22 +65,20 @@ export function StatusBadge({ status }) {
 export function EventCard({ event, featured = false }) {
   return (
     <Link
-      className={`event-card ${featured ? 'featured' : ''}`}
+      className={`event-card ${featured ? "featured" : ""}`}
       to={`/events/${event.slug}`}
       aria-label={`Explore ${event.name}`}
     >
-      <div
-        className="event-image"
-        style={
-          event.bannerUrl
-            ? { backgroundImage: `url(${event.bannerUrl})` }
-            : undefined
-        }
-      >
+      <div className="event-image">
+        {event.bannerUrl && (
+          <img src={event.bannerUrl} alt="" loading="lazy" decoding="async" />
+        )}
         <StatusBadge status={event.publicStatus} />
-        <div className="event-image-fallback">
-          <Trophy />
-        </div>
+        {!event.bannerUrl && (
+          <div className="event-image-fallback">
+            <Trophy />
+          </div>
+        )}
       </div>
       <div className="event-content">
         <p className="event-organizer">{event.organization.name}</p>
@@ -92,13 +90,13 @@ export function EventCard({ event, featured = false }) {
           </span>
           <span>
             <CalendarDays />
-            {event.publicStatus === 'live'
+            {event.publicStatus === "live"
               ? `Ends ${formatDate(event.endAt)}`
               : formatDate(event.startAt)}
           </span>
         </div>
         <span className="event-link">
-          {event.publicStatus === 'ended' ? 'View results' : 'Explore event'}
+          {event.publicStatus === "ended" ? "View results" : "Explore event"}
           <ChevronRight />
         </span>
       </div>
@@ -143,9 +141,9 @@ export function ErrorState({ message }) {
 
 export function ScrollReveal({
   children,
-  className = '',
+  className = "",
   delay = 0,
-  as: Element = 'div',
+  as: Element = "div",
   ...props
 }) {
   const ref = useRef(null);
@@ -153,20 +151,20 @@ export function ScrollReveal({
     const node = ref.current;
     if (!node) return undefined;
     if (
-      !('IntersectionObserver' in window) ||
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      !("IntersectionObserver" in window) ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
-      node.classList.add('is-revealed');
+      node.classList.add("is-revealed");
       return undefined;
     }
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          node.classList.add('is-revealed');
+          node.classList.add("is-revealed");
           observer.unobserve(node);
         }
       },
-      { threshold: 0.12, rootMargin: '0px 0px -48px' },
+      { threshold: 0.12, rootMargin: "0px 0px -48px" },
     );
     observer.observe(node);
     return () => observer.disconnect();
@@ -176,7 +174,7 @@ export function ScrollReveal({
       {...props}
       ref={ref}
       className={`scroll-reveal ${className}`.trim()}
-      style={{ '--reveal-delay': `${delay}ms`, ...props.style }}
+      style={{ "--reveal-delay": `${delay}ms`, ...props.style }}
     >
       {children}
     </Element>

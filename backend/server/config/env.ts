@@ -38,7 +38,7 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().min(32),
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
-    .default('info'),
+    .default('error'),
   PAYSTACK_PUBLIC_KEY: z.string().min(1).optional(),
   PAYSTACK_SECRET_KEY: z.string().min(1).optional(),
   PAYSTACK_WEBHOOK_SECRET: z.string().min(1).optional(),

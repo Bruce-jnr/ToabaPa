@@ -224,28 +224,34 @@ export function FinancialManagementPage({ session }) {
       description="Reconcile verified revenue, event fees, wallet entitlement, and Paystack transfers."
     >
       {state.error && <div className="admin-alert">{state.error}</div>}
-      <div className="payment-summary financial-summary">
-        <div>
-          <small>Total revenue</small>
-          <strong>{money(balance.totalEarned, balance.currency)}</strong>
-        </div>
-        <div>
-          <small>Platform fees</small>
-          <strong>{money(balance.totalFees, balance.currency)}</strong>
-        </div>
-        <div>
-          <small>Withdrawn</small>
-          <strong>{money(balance.totalWithdrawn, balance.currency)}</strong>
-        </div>
-        <div>
-          <small>Pending</small>
-          <strong>{money(balance.pendingWithdrawals, balance.currency)}</strong>
-        </div>
-        <div>
-          <small>Available</small>
-          <strong>{money(balance.availableBalance, balance.currency)}</strong>
-        </div>
-      </div>
+      <section
+        className="payment-summary payment-summary-card financial-summary"
+        aria-labelledby="financial-summary-title"
+      >
+        <h2 id="financial-summary-title">Wallet summary</h2>
+        <dl>
+          <div>
+            <dt>Total revenue</dt>
+            <dd>{money(balance.totalEarned, balance.currency)}</dd>
+          </div>
+          <div>
+            <dt>Platform fees</dt>
+            <dd>{money(balance.totalFees, balance.currency)}</dd>
+          </div>
+          <div>
+            <dt>Withdrawn</dt>
+            <dd>{money(balance.totalWithdrawn, balance.currency)}</dd>
+          </div>
+          <div>
+            <dt>Pending</dt>
+            <dd>{money(balance.pendingWithdrawals, balance.currency)}</dd>
+          </div>
+          <div className="available-balance">
+            <dt>Available</dt>
+            <dd>{money(balance.availableBalance, balance.currency)}</dd>
+          </div>
+        </dl>
+      </section>
       <section className="financial-paystack-balance">
         <span>Paystack account balance</span>
         <strong>
@@ -531,8 +537,8 @@ export function FinancialManagementPage({ session }) {
           <h2>Recent ledger</h2>
         </div>
       </div>
-      <div className="candidate-table-wrap">
-        <table className="admin-table">
+      <div className="candidate-table-wrap compact-ledger-wrap">
+        <table className="admin-table compact-ledger-table">
           <thead>
             <tr>
               <th>Date</th>
@@ -545,14 +551,26 @@ export function FinancialManagementPage({ session }) {
           <tbody>
             {ledgerData.items.map((item) => (
               <tr key={item.id}>
-                <td>{new Date(item.createdAt).toLocaleString()}</td>
-                <td>{item.type.replaceAll("_", " ")}</td>
-                <td>{item.event?.name || "Wallet"}</td>
-                <td>
+                <td className="ledger-details-cell">
+                  <time dateTime={item.createdAt}>
+                    {new Date(item.createdAt).toLocaleString()}
+                  </time>
+                  <small className="ledger-mobile-context">
+                    {item.type.replaceAll("_", " ")} ·{" "}
+                    {item.event?.name || "Wallet"}
+                  </small>
+                </td>
+                <td className="ledger-type-cell">
+                  {item.type.replaceAll("_", " ")}
+                </td>
+                <td className="ledger-event-cell">
+                  {item.event?.name || "Wallet"}
+                </td>
+                <td className="ledger-reference-cell">
                   <b className="table-reference">{item.reference}</b>
                 </td>
                 <td
-                  className={item.amount < 0 ? "ledger-debit" : "ledger-credit"}
+                  className={`ledger-amount-cell ${item.amount < 0 ? "ledger-debit" : "ledger-credit"}`}
                 >
                   {item.amount < 0 ? "-" : "+"}
                   {money(Math.abs(item.amount), balance.currency)}

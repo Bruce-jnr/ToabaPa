@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, Link, NavLink } from 'react-router-dom';
+import { useId, useState } from "react";
+import { useNavigate, Link, NavLink } from "react-router-dom";
 import {
   CalendarDays,
   ClipboardList,
@@ -13,9 +13,10 @@ import {
   Users,
   WalletCards,
   X,
-} from 'lucide-react';
-import logo from '../../assets/logo.png';
-import { api } from './adminApi.js';
+} from "lucide-react";
+import logo from "../../assets/logo.png";
+import { useFocusTrap } from "../../lib/useFocusTrap.js";
+import { api } from "./adminApi.js";
 
 function DashboardNavigation({ session, onNavigate }) {
   return (
@@ -35,7 +36,7 @@ function DashboardNavigation({ session, onNavigate }) {
       <NavLink to="/dashboard/payments" onClick={onNavigate}>
         <ReceiptText /> Payments
       </NavLink>
-      {session.globalRole === 'SUPER_ADMIN' && (
+      {session.globalRole === "SUPER_ADMIN" && (
         <>
           <NavLink to="/dashboard/settings" onClick={onNavigate}>
             <Settings /> Settings
@@ -58,23 +59,15 @@ function DashboardNavigation({ session, onNavigate }) {
 export function AdminLayout({ session, title, description, action, children }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  useEffect(() => {
-    if (!menuOpen) return undefined;
-    const closeOnEscape = (event) =>
-      event.key === 'Escape' && setMenuOpen(false);
-    document.addEventListener('keydown', closeOnEscape);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', closeOnEscape);
-      document.body.style.overflow = '';
-    };
-  }, [menuOpen]);
+  const menuRef = useFocusTrap(menuOpen, {
+    onEscape: () => setMenuOpen(false),
+  });
   async function logout() {
-    await api('/api/v1/auth/logout', { method: 'POST' });
+    await api("/api/v1/auth/logout", { method: "POST" });
     navigate(
-      session.globalRole === 'SUPER_ADMIN'
-        ? '/superadmin/login'
-        : '/administrators/login',
+      session.globalRole === "SUPER_ADMIN"
+        ? "/superadmin/login"
+        : "/administrators/login",
     );
   }
 
@@ -91,9 +84,9 @@ export function AdminLayout({ session, title, description, action, children }) {
         <div className="admin-profile">
           <span>
             {session.user.name
-              .split(' ')
+              .split(" ")
               .map((part) => part[0])
-              .join('')
+              .join("")
               .slice(0, 2)}
           </span>
           <div>
@@ -138,7 +131,15 @@ export function AdminLayout({ session, title, description, action, children }) {
             event.target === event.currentTarget && setMenuOpen(false)
           }
         >
-          <aside className="admin-menu-panel" id="mobile-admin-menu">
+          <aside
+            className="admin-menu-panel"
+            id="mobile-admin-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Dashboard menu"
+            tabIndex="-1"
+            ref={menuRef}
+          >
             <header>
               <Link
                 to="/"
@@ -176,6 +177,8 @@ export function AdminLayout({ session, title, description, action, children }) {
 }
 
 export function Dialog({ title, onClose, children }) {
+  const titleId = useId();
+  const dialogRef = useFocusTrap(true, { onEscape: onClose });
   return (
     <div
       className="dialog-backdrop"
@@ -186,10 +189,12 @@ export function Dialog({ title, onClose, children }) {
         className="admin-dialog"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="dialog-title"
+        aria-labelledby={titleId}
+        tabIndex="-1"
+        ref={dialogRef}
       >
         <header>
-          <h2 id="dialog-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button
             className="icon-button"
             type="button"
@@ -205,8 +210,8 @@ export function Dialog({ title, onClose, children }) {
   );
 }
 
-export function AdminLoading({ type = 'table' }) {
-  if (type === 'cards')
+export function AdminLoading({ type = "table" }) {
+  if (type === "cards")
     return (
       <div
         className="management-grid admin-skeleton-grid"
