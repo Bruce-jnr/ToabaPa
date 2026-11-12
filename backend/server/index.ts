@@ -1,34 +1,43 @@
-import { app } from './app.js';
-import { env } from './config/env.js';
-import { logger } from './config/logger.js';
-import { prisma } from './db/prisma.js';
+import { app } from "./app.js";
+import { env } from "./config/env.js";
+import { logger } from "./config/logger.js";
+import { prisma } from "./db/prisma.js";
 import {
   startWebhookRetryWorker,
   stopWebhookRetryWorker,
-} from './workers/webhook-retry.worker.js';
+} from "./workers/webhook-retry.worker.js";
 import {
   startAuditRetentionWorker,
   stopAuditRetentionWorker,
-} from './workers/audit-retention.worker.js';
-import { startFinancialReconciliationWorker, stopFinancialReconciliationWorker } from './workers/financial-reconciliation.worker.js';
+} from "./workers/audit-retention.worker.js";
+import {
+  startFinancialReconciliationWorker,
+  stopFinancialReconciliationWorker,
+} from "./workers/financial-reconciliation.worker.js";
+import {
+  startTelegramAlertWorker,
+  stopTelegramAlertWorker,
+} from "./workers/telegram-alert.worker.js";
 
 const server = app.listen(env.API_PORT, () => {
-  logger.info({ port: env.API_PORT }, 'Toabapa API listening');
+  logger.info({ port: env.API_PORT }, "Toabapa API listening");
 });
 startWebhookRetryWorker();
 startAuditRetentionWorker();
 startFinancialReconciliationWorker();
+startTelegramAlertWorker();
 
 async function shutdown(signal: string) {
-  logger.info({ signal }, 'Shutting down API');
+  logger.info({ signal }, "Shutting down API");
   server.close(async () => {
     stopWebhookRetryWorker();
     stopAuditRetentionWorker();
     stopFinancialReconciliationWorker();
+    stopTelegramAlertWorker();
     await prisma.$disconnect();
     process.exit(0);
   });
 }
 
-process.on('SIGINT', () => void shutdown('SIGINT'));
-process.on('SIGTERM', () => void shutdown('SIGTERM'));
+process.on("SIGINT", () => void shutdown("SIGINT"));
+process.on("SIGTERM", () => void shutdown("SIGTERM"));

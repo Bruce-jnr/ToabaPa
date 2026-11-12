@@ -1,10 +1,13 @@
-import { randomBytes } from 'node:crypto';
-import { PaymentProviderName, RecordStatus, VoteChannel } from '@prisma/client';
-import { z } from 'zod';
-import { prisma } from '../db/prisma.js';
-import { AppError } from '../errors/app-error.js';
-import { assertEventAcceptsVotes, calculateOrderAmount } from '../domain/voting.js';
-import { normalizeGhanaPhone } from '../domain/phone.js';
+import { randomBytes } from "node:crypto";
+import { PaymentProviderName, RecordStatus } from "@prisma/client";
+import { z } from "zod";
+import { prisma } from "../db/prisma.js";
+import { AppError } from "../errors/app-error.js";
+import {
+  assertEventAcceptsVotes,
+  calculateOrderAmount,
+} from "../domain/voting.js";
+import { normalizeGhanaPhone } from "../domain/phone.js";
 
 export const createVoteOrderSchema = z.object({
   candidateId: z.string().cuid(),
@@ -15,10 +18,13 @@ export const createVoteOrderSchema = z.object({
 
 function createPaymentReference(): string {
   const year = new Date().getUTCFullYear();
-  return `TOMA-${year}-${randomBytes(6).toString('hex').toUpperCase()}`;
+  return `TOMA-${year}-${randomBytes(6).toString("hex").toUpperCase()}`;
 }
 
-export async function createVoteOrder(rawInput: unknown, channel: VoteChannel) {
+export async function createVoteOrder(
+  rawInput: unknown,
+  channel: 'WEB' | 'USSD',
+) {
   const input = createVoteOrderSchema.parse(rawInput);
   const phone = normalizeGhanaPhone(input.phone);
   const candidate = await prisma.candidate.findUnique({
@@ -27,14 +33,23 @@ export async function createVoteOrder(rawInput: unknown, channel: VoteChannel) {
   });
 
   if (!candidate || candidate.status !== RecordStatus.ACTIVE) {
-    throw new AppError(404, 'CANDIDATE_NOT_AVAILABLE', 'Candidate is not available for voting.');
+    throw new AppError(
+      404,
+      "CANDIDATE_NOT_AVAILABLE",
+      "Candidate is not available for voting.",
+    );
   }
   if (candidate.category.eventId !== candidate.eventId) {
-    throw new AppError(409, 'INVALID_CANDIDATE_CONFIGURATION', 'Candidate category is invalid.');
+    throw new AppError(
+      409,
+      "INVALID_CANDIDATE_CONFIGURATION",
+      "Candidate category is invalid.",
+    );
   }
 
   assertEventAcceptsVotes(candidate.event, channel);
-  const unitPrice = candidate.category.votePriceOverride ?? candidate.event.defaultVotePrice;
+  const unitPrice =
+    candidate.category.votePriceOverride ?? candidate.event.defaultVotePrice;
   const amount = calculateOrderAmount({
     quantity: input.quantity,
     minimumVotes: candidate.event.minimumVotes,

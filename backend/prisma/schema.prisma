@@ -546,3 +546,23 @@ model WebhookLog {
   @@index([processed, receivedAt])
   @@index([nextAttemptAt, processed])
 }
+
+model AlertOutbox {
+  id              String    @id @default(cuid())
+  eventCode       String
+  severity        String
+  dedupeKey       String    @unique
+  destination     String
+  safePayload     Json
+  occurrenceCount Int       @default(1)
+  status          String    @default("PENDING")
+  attempts        Int       @default(0)
+  nextAttemptAt   DateTime  @default(now())
+  lastErrorCode   String?
+  deliveredAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([createdAt, status])
+}

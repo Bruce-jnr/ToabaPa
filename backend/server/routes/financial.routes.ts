@@ -10,6 +10,8 @@ import { type AuthenticatedRequest, requireAuth } from "../middleware/auth.js";
 import { paystackProvider } from "../payments/paystack.provider.js";
 import { getWalletBalance } from "../services/wallet.service.js";
 import { auditRequestContext } from "../security/audit-request.js";
+import { enqueueAlert } from "../alerts/alert-outbox.service.js";
+import { maskReference } from "../alerts/alert-redaction.js";
 
 export const financialRouter = Router();
 financialRouter.use(requireAuth);
@@ -219,6 +221,26 @@ financialRouter.post("/adjustments", async (req, res, next) => {
           },
         },
       });
+      await enqueueAlert(
+        {
+          code: "LEDGER_ADJUSTMENT_CREATED",
+          severity: "P1",
+          title: "Manual ledger adjustment",
+          operatorAction:
+            "Verify the adjustment amount, reason, reference, and approving superadmin.",
+          organizationId: auth.organizationId,
+          resourceType: "LedgerEntry",
+          resourceId: created.id,
+          details: {
+            amount: input.amount,
+            reference: maskReference(input.reference),
+            reason: input.reason,
+            actorId: auth.userId,
+          },
+          dedupeParts: [created.id],
+        },
+        tx,
+      );
       return created;
     });
     res.status(201).json({ success: true, data: entry });
@@ -531,6 +553,32 @@ financialRouter.post("/withdrawals", async (req, res, next) => {
             },
           },
         });
+        if (
+          wallet.currency === "GHS" &&
+          input.amount >= env.TELEGRAM_HIGH_VALUE_WITHDRAWAL_GHS * 100
+        )
+          await enqueueAlert(
+            {
+              code: "HIGH_VALUE_WITHDRAWAL_REQUESTED",
+              severity: "P1",
+              title: "High-value withdrawal requested",
+              operatorAction:
+                "Confirm the event, amount, payout destination, and requesting superadmin before processing.",
+              organizationId: auth.organizationId,
+              eventId: event.id,
+              resourceType: "Withdrawal",
+              resourceId: created.id,
+              details: {
+                amount: input.amount,
+                currency: wallet.currency,
+                reference: maskReference(reference),
+                payoutDestination: `…${accountNumber.slice(-4)}`,
+                actorId: auth.userId,
+              },
+              dedupeParts: [created.id],
+            },
+            tx,
+          );
         return created;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },

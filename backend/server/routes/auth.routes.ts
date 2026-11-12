@@ -1,6 +1,6 @@
 import argon2 from "argon2";
 import { MembershipStatus } from "@prisma/client";
-import { randomInt } from "node:crypto";
+import { createHmac, randomInt } from "node:crypto";
 import { Router } from "express";
 import { z } from "zod";
 
@@ -22,6 +22,7 @@ import { AppError } from "../errors/app-error.js";
 import { type AuthenticatedRequest, requireAuth } from "../middleware/auth.js";
 import { normalizeGhanaPhone } from "../domain/phone.js";
 import { auditRequestContext } from "../security/audit-request.js";
+import { enqueueAlert } from "../alerts/alert-outbox.service.js";
 import {
   sendPasswordResetOtp,
   verifyPasswordResetOtp,
@@ -74,6 +75,28 @@ authRouter.post("/login", async (req, res, next) => {
       },
     });
     if (!user || !(await argon2.verify(user.passwordHash, input.password))) {
+      const accountFingerprint = createHmac("sha256", env.SESSION_SECRET)
+        .update(identifier)
+        .digest("hex")
+        .slice(0, 12);
+      const ipFingerprint = createHmac("sha256", env.SESSION_SECRET)
+        .update(req.ip || "unknown")
+        .digest("hex")
+        .slice(0, 12);
+      void enqueueAlert({
+        code: "REPEATED_FAILED_LOGIN",
+        severity: "P2",
+        title: "Repeated failed login attempts",
+        operatorAction:
+          "Review the account and source fingerprints for possible credential stuffing.",
+        details: {
+          portal: input.portal,
+          accountFingerprint,
+          ipFingerprint,
+        },
+        threshold: 5,
+        dedupeParts: [input.portal, accountFingerprint, ipFingerprint],
+      });
       throw new AppError(
         401,
         "INVALID_CREDENTIALS",
