@@ -15,13 +15,20 @@ import { publicRouter } from './routes/public.routes.js';
 import { voteOrdersRouter } from './routes/vote-orders.routes.js';
 import { ussdRouter } from './routes/ussd.routes.js';
 import { webhookRouter } from './routes/webhook.routes.js';
-import { apiRateLimit, rateLimitKeyFromBody, rateLimitPhoneKeyFromBody } from './middleware/rate-limit.js';
+import {
+  apiRateLimit,
+  rateLimitKeyFromBody,
+  rateLimitPhoneKeyFromBody,
+} from './middleware/rate-limit.js';
 import { financialRouter } from './routes/financial.routes.js';
 import { strictTransportSecurity } from './security/http-headers.js';
 
 export const app = express();
 
 app.disable('x-powered-by');
+// This must be configured before logging and rate limiting so Express resolves
+// the client address consistently for every route.
+if (env.TRUST_PROXY_HOPS > 0) app.set('trust proxy', env.TRUST_PROXY_HOPS);
 app.use(
   pinoHttp({
     logger,
@@ -66,11 +73,7 @@ app.use(
 app.use(express.json({ limit: '100kb' }));
 app.use(cookieParser());
 
-if (env.TRUST_PROXY_HOPS > 0) app.set('trust proxy', env.TRUST_PROXY_HOPS);
-app.use(
-  '/api',
-  apiRateLimit({ windowMs: 60_000, limit: 120 }),
-);
+app.use('/api', apiRateLimit({ windowMs: 60_000, limit: 120 }));
 app.use('/api/health', healthRouter);
 const authRateLimitHandler = (_req: express.Request, res: express.Response) =>
   res.status(429).json({
@@ -131,17 +134,28 @@ app.use(
 app.use('/api/v1/auth', authRouter);
 app.use(
   ['/api/v1/organizer/event-images', '/api/v1/organizer/candidate-images'],
-  apiRateLimit({ windowMs: 15 * 60_000, limit: 20, handler: authRateLimitHandler }),
+  apiRateLimit({
+    windowMs: 15 * 60_000,
+    limit: 20,
+    handler: authRateLimitHandler,
+  }),
 );
 app.use('/api/v1/organizer', organizerRouter);
-app.use('/api/v1/superadmin/financial', apiRateLimit({ windowMs: 60_000, limit: 30 }), financialRouter);
+app.use(
+  '/api/v1/superadmin/financial',
+  apiRateLimit({ windowMs: 60_000, limit: 30 }),
+  financialRouter,
+);
 app.use(
   '/api/v1/public/candidate-images',
-  express.static(path.resolve(process.cwd(), 'backend', 'uploads', 'candidates'), {
-    fallthrough: false,
-    maxAge: '1d',
-    immutable: false,
-  }),
+  express.static(
+    path.resolve(process.cwd(), 'backend', 'uploads', 'candidates'),
+    {
+      fallthrough: false,
+      maxAge: '1d',
+      immutable: false,
+    },
+  ),
 );
 app.use(
   '/api/v1/public/event-images',
