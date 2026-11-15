@@ -23,7 +23,7 @@ const normalizedEnv = {
   PAYSTACK_SECRET_KEY: secret("PAYSTACK_SECRET_KEY"),
   ARKESEL_API_KEY: secret("ARKESEL_API_KEY"),
   ARKESEL_SENDER_ID: secret("ARKESEL_SENDER_ID"),
-  ARKESEL_USSD_SECRET: secret("ARKESEL_USSD_SECRET"),
+  NALO_USSD_SECRET: secret("NALO_USSD_SECRET"),
   TELEGRAM_TOKEN: secret("TELEGRAM_TOKEN"),
 };
 
@@ -45,7 +45,7 @@ const envSchema = z.object({
   PAYSTACK_WEBHOOK_SECRET: z.string().min(1).optional(),
   ARKESEL_API_KEY: z.string().min(1).optional(),
   ARKESEL_SENDER_ID: z.string().min(1).optional(),
-  ARKESEL_USSD_SECRET: z.string().min(24).optional(),
+  NALO_USSD_SECRET: z.string().min(24).optional(),
   WEBHOOK_RETRY_INTERVAL_MS: z.coerce.number().int().min(5_000).default(30_000),
   TELEGRAM_ALERTS_ENABLED: z
     .enum(["true", "false"])
@@ -105,7 +105,7 @@ if (
 if (env.NODE_ENV === "production") {
   const missing = [
     !env.PAYSTACK_SECRET_KEY && "PAYSTACK_SECRET_KEY",
-    !env.ARKESEL_USSD_SECRET && "ARKESEL_USSD_SECRET",
+    !env.NALO_USSD_SECRET && "NALO_USSD_SECRET",
     !env.ARKESEL_API_KEY && "ARKESEL_API_KEY",
     !env.ARKESEL_SENDER_ID && "ARKESEL_SENDER_ID",
   ].filter(Boolean);

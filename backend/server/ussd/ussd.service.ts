@@ -9,7 +9,7 @@ import { normalizeGhanaPhone } from '../domain/phone.js';
 import { paystackProvider } from '../payments/paystack.provider.js';
 import { createVoteOrder } from '../services/vote-order.service.js';
 import { creditVerifiedPayment } from '../services/vote-credit.service.js';
-import type { ArkeselRequest } from './arkesel.js';
+import type { NaloRequest } from './nalo.js';
 import {
   hasAmbiguousLiveCode,
   liveUssdCandidateFilter,
@@ -37,22 +37,22 @@ function providerFor(network: string): 'mtn' | 'atl' | 'vod' {
 }
 
 export async function handleUssd(
-  request: ArkeselRequest,
+  request: NaloRequest,
 ): Promise<{ message: string; continueSession: boolean }> {
-  const phone = normalizeGhanaPhone(request.msisdn);
-  if (request.newSession) {
-    await saveUssdSession(request.sessionID, {
+  const phone = normalizeGhanaPhone(request.MSISDN);
+  if (request.MSGTYPE) {
+    await saveUssdSession(request.SESSIONID, {
       step: 'MAIN_MENU',
       phone,
-      userId: request.userID,
-      network: request.network,
+      userId: request.USERID,
+      network: request.NETWORK,
     });
     return {
       message: 'Welcome to Toabapa\n1. Vote\n0. Exit',
       continueSession: true,
     };
   }
-  const session = await getUssdSession(request.sessionID);
+  const session = await getUssdSession(request.SESSIONID);
   if (!session) {
     return {
       message: 'Session expired. Try Again',
@@ -61,33 +61,33 @@ export async function handleUssd(
   }
   let sameNetwork = false;
   try {
-    sameNetwork = providerFor(session.network) === providerFor(request.network);
+    sameNetwork = providerFor(session.network) === providerFor(request.NETWORK);
   } catch {
     sameNetwork = false;
   }
   if (
     session.phone !== phone ||
-    session.userId !== request.userID ||
+    session.userId !== request.USERID ||
     !sameNetwork
   ) {
-    await deleteUssdSession(request.sessionID);
+    await deleteUssdSession(request.SESSIONID);
     throw new AppError(
       400,
       'USSD_SESSION_MISMATCH',
       'Session details changed. Start again.',
     );
   }
-  const input = request.userData.trim();
+  const input = request.USERDATA.trim();
   if (session.step === 'MAIN_MENU') {
     if (input !== '1') {
-      await deleteUssdSession(request.sessionID);
+      await deleteUssdSession(request.SESSIONID);
       return {
         message:
           input === '0' ? 'Thank you for using Toabapa.' : 'Invalid option.',
         continueSession: false,
       };
     }
-    await saveUssdSession(request.sessionID, {
+    await saveUssdSession(request.SESSIONID, {
       ...session,
       step: 'ENTER_CODE',
     });
@@ -100,7 +100,7 @@ export async function handleUssd(
       take: 2,
     });
     if (hasAmbiguousLiveCode(candidates)) {
-      await deleteUssdSession(request.sessionID);
+      await deleteUssdSession(request.SESSIONID);
       return {
         message:
           'This nominee code is used by more than one live event. Contact the event organizer for the correct code.',
@@ -114,7 +114,7 @@ export async function handleUssd(
           'Nominee code is not valid for a live event. Enter nominee code:',
         continueSession: true,
       };
-    await saveUssdSession(request.sessionID, {
+    await saveUssdSession(request.SESSIONID, {
       ...session,
       step: 'ENTER_QUANTITY',
       candidateId: candidate.id,
@@ -145,7 +145,7 @@ export async function handleUssd(
     const unitPrice =
       candidate.category.votePriceOverride ?? candidate.event.defaultVotePrice;
     const amount = quantity * unitPrice;
-    await saveUssdSession(request.sessionID, {
+    await saveUssdSession(request.SESSIONID, {
       ...session,
       step: 'CONFIRM_ORDER',
       quantity,
@@ -157,7 +157,7 @@ export async function handleUssd(
     };
   }
   if (input !== '1') {
-    await deleteUssdSession(request.sessionID);
+    await deleteUssdSession(request.SESSIONID);
     return { message: 'Vote cancelled.', continueSession: false };
   }
   const order = await createVoteOrder({
@@ -190,7 +190,7 @@ export async function handleUssd(
     where: { id: order.id },
     data: { paymentStatus: PaymentStatus.PROCESSING },
   });
-  await deleteUssdSession(request.sessionID);
+  await deleteUssdSession(request.SESSIONID);
   if (charge.status === 'success') {
     const verified = await paystackProvider.verifyPayment(
       order.paymentReference,

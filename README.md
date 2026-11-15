@@ -112,7 +112,7 @@ The API and Prisma CLI both use `DATABASE_URL`.
 | `PAYSTACK_WEBHOOK_SECRET` | Integration | Paystack webhook verification secret |
 | `ARKESEL_API_KEY` | Integration | Arkesel API key |
 | `ARKESEL_SENDER_ID` | Integration | Arkesel SMS sender ID |
-| `ARKESEL_USSD_SECRET` | Production | Random USSD callback secret of at least 24 characters |
+| `NALO_USSD_SECRET` | Production | Random NALO USSD callback secret of at least 24 characters |
 | `WEBHOOK_RETRY_INTERVAL_MS` | No | Paystack retry-worker interval; defaults to 30 seconds |
 | `STORAGE_ACCESS_KEY` | Uploads | Object-storage access key |
 | `STORAGE_SECRET_KEY` | Uploads | Object-storage secret key |
@@ -200,16 +200,16 @@ The vote-order endpoint accepts candidate ID, quantity, phone number, and `WEB` 
 
 ### USSD voting
 
-Configure the Arkesel USSD callback as:
+Configure the NALO USSD callback as:
 
 ```text
-POST https://your-api.example.com/api/v1/ussd/arkesel?token=YOUR_CALLBACK_SECRET
+POST https://your-api.example.com/api/v1/ussd/nalo?token=YOUR_CALLBACK_SECRET
 Content-Type: application/json
 ```
 
 The route implements: main menu, nominee-code lookup, vote quantity, price preview, acceptance, Paystack Ghana mobile-money authorization, and asynchronous webhook crediting. Toabapa never collects the customer's Mobile Money PIN; the carrier/Paystack authorization prompt handles it.
 
-The token must equal `ARKESEL_USSD_SECRET`. An edge proxy that injects the `x-arkesel-secret` header is preferable when available. Arkesel request fields are `sessionID`, `userID`, `newSession`, `msisdn`, `userData`, and `network`. PostgreSQL stores sessions with a two-minute expiry.
+The token must equal `NALO_USSD_SECRET`. A trusted edge proxy can inject the `x-nalo-secret` header if NALO supports a callback URL without a query token. NALO request fields are `SESSIONID`, `USERID`, `MSGTYPE`, `MSISDN`, `USERDATA`, and `NETWORK`. The response uses `MSG` and `MSGTYPE` to display a menu and continue or end the session. PostgreSQL stores sessions with a two-minute expiry. Keep Arkesel SMS settings for organizer password recovery.
 
 ### Organizer password recovery
 
