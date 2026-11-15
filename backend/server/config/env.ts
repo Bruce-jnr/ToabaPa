@@ -28,66 +28,52 @@ const normalizedEnv = {
 };
 
 const envSchema = z.object({
-  NODE_ENV: z
-    .enum(["development", "test", "production"])
-    .default("development"),
-  API_PORT: z.coerce.number().int().min(1).max(65535).default(4000),
-  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(0),
+  NODE_ENV: z.enum(["development", "test", "production"]),
+  API_PORT: z.coerce.number().int().min(1).max(65535),
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10),
   DATABASE_URL: z.string().url(),
-  APP_URL: z.string().url().default("http://localhost:5173"),
-  API_URL: z.string().url().default("http://localhost:4000"),
+  APP_URL: z.string().url(),
+  API_URL: z.string().url(),
   SESSION_SECRET: z.string().min(32),
-  LOG_LEVEL: z
-    .enum(["fatal", "error", "warn", "info", "debug", "trace"])
-    .default("error"),
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]),
   PAYSTACK_PUBLIC_KEY: z.string().min(1).optional(),
   PAYSTACK_SECRET_KEY: z.string().min(1).optional(),
   PAYSTACK_WEBHOOK_SECRET: z.string().min(1).optional(),
   ARKESEL_API_KEY: z.string().min(1).optional(),
   ARKESEL_SENDER_ID: z.string().min(1).optional(),
   NALO_USSD_SECRET: z.string().min(24).optional(),
-  WEBHOOK_RETRY_INTERVAL_MS: z.coerce.number().int().min(5_000).default(30_000),
-  TELEGRAM_ALERTS_ENABLED: z
-    .enum(["true", "false"])
-    .default("false")
-    .transform((value) => value === "true"),
+  WEBHOOK_RETRY_INTERVAL_MS: z.coerce.number().int().min(5_000),
+  TELEGRAM_ALERTS_ENABLED: z.enum(["true", "false"]).transform((value) => value === "true"),
   TELEGRAM_TOKEN: z.string().min(20).optional(),
   TELEGRAM_CHAT_ID: z.string().min(1).max(100).optional(),
-  TELEGRAM_HIGH_VALUE_WITHDRAWAL_GHS: z.coerce
-    .number()
-    .positive()
-    .default(5_000),
+  TELEGRAM_HIGH_VALUE_WITHDRAWAL_GHS: z.coerce.number().positive(),
   TELEGRAM_ALERT_COOLDOWN_SECONDS: z.coerce
     .number()
     .int()
     .min(60)
-    .max(3_600)
-    .default(300),
+    .max(3_600),
   TELEGRAM_ALERT_DAILY_LIMIT: z.coerce
     .number()
     .int()
     .min(10)
-    .max(1_000)
-    .default(100),
+    .max(1_000),
   TELEGRAM_REQUEST_TIMEOUT_MS: z.coerce
     .number()
     .int()
     .min(1_000)
-    .max(5_000)
-    .default(2_500),
+    .max(5_000),
   TELEGRAM_MAX_DELIVERY_ATTEMPTS: z.coerce
     .number()
     .int()
     .min(1)
-    .max(10)
-    .default(5),
+    .max(10),
 });
 
 const parsed = envSchema.safeParse(normalizedEnv);
 
 if (!parsed.success) {
   const details = parsed.error.issues.map(
-    (issue) => `${issue.path.join(".")}: ${issue.message}`,
+    (issue) => `${issue.path.join(".")}: ${issue.message}. Set ${issue.path.join(".")} in the environment or .env file`,
   );
   throw new Error(`Invalid environment configuration:\n${details.join("\n")}`);
 }

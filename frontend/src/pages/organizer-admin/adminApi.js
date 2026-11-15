@@ -1,7 +1,8 @@
 const API = import.meta.env.VITE_API_URL;
+if (!API) throw new Error('Set VITE_API_URL in the frontend environment.');
 
 function apiUrl(path) {
-  return API ? `${API.replace(/\/$/, '')}${path}` : path;
+  return `${API.replace(/\/$/, '')}${path}`;
 }
 
 export async function api(path, options = {}) {
