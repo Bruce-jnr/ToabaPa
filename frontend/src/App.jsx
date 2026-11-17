@@ -1,5 +1,15 @@
-import { lazy, Suspense } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { lazy, Suspense, useLayoutEffect } from "react";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+
+function ScrollOnNavigation() {
+  const { pathname, search, hash } = useLocation();
+
+  useLayoutEffect(() => {
+    if (!hash) window.scrollTo(0, 0);
+  }, [pathname, search, hash]);
+
+  return null;
+}
 
 const lazyNamed = (loader, name) =>
   lazy(() => loader().then((module) => ({ default: module[name] })));
@@ -48,6 +58,7 @@ function RouteLoading() {
 function App() {
   return (
     <BrowserRouter>
+      <ScrollOnNavigation />
       <Suspense fallback={<RouteLoading />}>
         <Routes>
           <Route path="/" element={<HomePage />} />

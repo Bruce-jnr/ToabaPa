@@ -5712,28 +5712,44 @@ h3 {
   }
   .candidates-table th:first-child,
   .candidates-table td:first-child {
-    width: 41%;
+    width: 44%;
   }
   .candidates-table th:nth-child(2),
   .candidates-table td:nth-child(2) {
-    width: 15%;
+    width: 14%;
   }
   .candidates-table th:nth-child(5),
   .candidates-table td:nth-child(5) {
-    width: 16%;
+    width: 14%;
   }
   .candidates-table th:last-child,
   .candidates-table td:last-child {
     width: 28%;
   }
+  .candidates-table-single-action th:first-child,
+  .candidates-table-single-action td:first-child {
+    width: 48%;
+  }
+  .candidates-table-single-action th:nth-child(2),
+  .candidates-table-single-action td:nth-child(2) {
+    width: 18%;
+  }
+  .candidates-table-single-action th:last-child,
+  .candidates-table-single-action td:last-child {
+    width: 20%;
+  }
   .candidates-table .table-person {
     min-width: 0;
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 3px;
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 7px;
+    row-gap: 2px;
   }
   .candidates-table .table-person > span {
-    display: none;
+    display: grid;
+    grid-row: span 2;
+    flex: none;
   }
   .candidates-table .table-person strong,
   .mobile-candidate-context {

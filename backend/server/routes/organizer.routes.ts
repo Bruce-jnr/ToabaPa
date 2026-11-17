@@ -374,7 +374,7 @@ organizerRouter.patch('/candidates/:id', requireRoles(...managerRoles), async (r
   } catch (error) { next(error); }
 });
 
-organizerRouter.delete('/candidates/:id', requireRoles(...managerRoles), async (req, res, next) => {
+organizerRouter.delete('/candidates/:id', requireSuperAdmin, async (req, res, next) => {
   try {
     const auth = (req as AuthenticatedRequest).auth;
     const id = z.string().cuid().parse(req.params.id);

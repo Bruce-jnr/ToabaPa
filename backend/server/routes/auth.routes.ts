@@ -15,6 +15,7 @@ import {
   createSession,
   revokeSession,
   SESSION_COOKIE,
+  SESSION_MAX_AGE_MS,
 } from "../auth/session.js";
 import { env } from "../config/env.js";
 import { prisma } from "../db/prisma.js";
@@ -53,7 +54,7 @@ const cookieOptions = {
   httpOnly: true,
   sameSite: "lax" as const,
   secure: env.NODE_ENV === "production",
-  maxAge: 8 * 60 * 60 * 1000,
+  maxAge: SESSION_MAX_AGE_MS,
   path: "/",
 };
 

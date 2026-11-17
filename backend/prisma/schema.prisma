@@ -137,6 +137,7 @@ model AuthSession {
   id        String    @id
   userId    String
   expiresAt DateTime
+  lastActivityAt DateTime @default(now())
   revokedAt DateTime?
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime  @default(now())
@@ -339,6 +340,7 @@ model VoteOrder {
   channel             VoteChannel
   paymentProvider     PaymentProviderName
   paymentReference    String              @unique
+  ussdSessionId        String?             @unique
   paymentStatus       PaymentStatus       @default(PENDING)
   voteStatus          VoteStatus          @default(PENDING)
   providerCheckoutUrl String?

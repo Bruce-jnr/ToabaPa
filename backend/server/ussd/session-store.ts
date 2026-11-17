@@ -71,3 +71,10 @@ export async function getUssdSession(id: string): Promise<UssdSession | null> {
 export async function deleteUssdSession(id: string) {
   await prisma.ussdSession.deleteMany({ where: { id } });
 }
+
+export async function claimUssdSession(id: string) {
+  const claimed = await prisma.ussdSession.deleteMany({
+    where: { id, expiresAt: { gt: new Date() } },
+  });
+  return claimed.count === 1;
+}

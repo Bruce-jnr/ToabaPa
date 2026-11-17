@@ -18,6 +18,7 @@ import {
   startTelegramAlertWorker,
   stopTelegramAlertWorker,
 } from "./workers/telegram-alert.worker.js";
+import { startSessionCleanupWorker, stopSessionCleanupWorker } from './workers/session-cleanup.worker.js';
 
 const server = app.listen(env.API_PORT, () => {
   logger.info({ port: env.API_PORT }, "Toabapa API listening");
@@ -26,6 +27,7 @@ startWebhookRetryWorker();
 startAuditRetentionWorker();
 startFinancialReconciliationWorker();
 startTelegramAlertWorker();
+startSessionCleanupWorker();
 
 async function shutdown(signal: string) {
   logger.info({ signal }, "Shutting down API");
@@ -34,6 +36,7 @@ async function shutdown(signal: string) {
     stopAuditRetentionWorker();
     stopFinancialReconciliationWorker();
     stopTelegramAlertWorker();
+    stopSessionCleanupWorker();
     await prisma.$disconnect();
     process.exit(0);
   });

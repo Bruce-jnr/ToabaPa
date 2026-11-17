@@ -10,7 +10,11 @@ export const naloRequestSchema = z.object({
 });
 export type NaloRequest = z.infer<typeof naloRequestSchema>;
 
-export function naloResponse(request: NaloRequest, message: string, continueSession: boolean) {
+export function naloResponse(
+  request: NaloRequest,
+  message: string,
+  continueSession: boolean,
+) {
   return {
     SESSIONID: request.SESSIONID,
     USERID: request.USERID,

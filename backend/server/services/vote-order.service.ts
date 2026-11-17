@@ -14,6 +14,7 @@ export const createVoteOrderSchema = z.object({
   quantity: z.number().int().positive(),
   phone: z.string().trim().min(7).max(20),
   email: z.string().trim().toLowerCase().email().max(254).optional(),
+  ussdSessionId: z.string().min(1).max(100).optional(),
 });
 
 function createPaymentReference(): string {
@@ -72,6 +73,7 @@ export async function createVoteOrder(
       channel,
       paymentProvider: PaymentProviderName.PAYSTACK,
       paymentReference: createPaymentReference(),
+      ussdSessionId: channel === 'USSD' ? input.ussdSessionId : undefined,
     },
     select: {
       id: true,

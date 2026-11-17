@@ -94,7 +94,7 @@ export function CandidatesPage({ session }) {
         <AdminLoading />
       ) : items.length ? (
         <div className="candidate-table-wrap">
-          <table className="admin-table candidates-table">
+          <table className={`admin-table candidates-table${session.globalRole === "SUPER_ADMIN" ? "" : " candidates-table-single-action"}`}>
             <thead>
               <tr>
                 <th>Candidate</th>
@@ -150,14 +150,17 @@ export function CandidatesPage({ session }) {
                       >
                         <Pencil />
                       </button>
-                      <button
-                        className="table-action"
-                        onClick={() => archive(item)}
-                        type="button"
-                        title="Archive candidate"
-                      >
-                        <Archive />
-                      </button>
+                      {session.globalRole === "SUPER_ADMIN" && (
+                        <button
+                          className="table-action"
+                          onClick={() => archive(item)}
+                          type="button"
+                          title="Archive candidate"
+                          aria-label={`Archive ${item.name}`}
+                        >
+                          <Archive />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

@@ -15,6 +15,7 @@ import {
   liveUssdCandidateFilter,
 } from './candidate-resolution.js';
 import {
+  claimUssdSession,
   deleteUssdSession,
   getUssdSession,
   saveUssdSession,
@@ -40,6 +41,17 @@ export async function handleUssd(
   request: NaloRequest,
 ): Promise<{ message: string; continueSession: boolean }> {
   const phone = normalizeGhanaPhone(request.MSISDN);
+  const priorOrder = await prisma.voteOrder.findUnique({
+    where: { ussdSessionId: request.SESSIONID },
+    select: { voterPhone: true },
+  });
+  if (priorOrder)
+    return {
+      message: priorOrder.voterPhone === phone
+        ? 'Vote request already submitted. Check your payment prompt.'
+        : 'This session is no longer available.',
+      continueSession: false,
+    };
   if (request.MSGTYPE) {
     await saveUssdSession(request.SESSIONID, {
       step: 'MAIN_MENU',
@@ -160,10 +172,13 @@ export async function handleUssd(
     await deleteUssdSession(request.SESSIONID);
     return { message: 'Vote cancelled.', continueSession: false };
   }
+  if (!(await claimUssdSession(request.SESSIONID)))
+    return { message: 'Vote request already submitted or session expired. Start again if no payment prompt arrived.', continueSession: false };
   const order = await createVoteOrder({
     candidateId: session.candidateId,
     quantity: session.quantity,
     phone,
+    ussdSessionId: request.SESSIONID,
   }, VoteChannel.USSD);
   const savedOrder = await prisma.voteOrder.findUniqueOrThrow({
     where: { id: order.id },
@@ -190,7 +205,6 @@ export async function handleUssd(
     where: { id: order.id },
     data: { paymentStatus: PaymentStatus.PROCESSING },
   });
-  await deleteUssdSession(request.SESSIONID);
   if (charge.status === 'success') {
     const verified = await paystackProvider.verifyPayment(
       order.paymentReference,
