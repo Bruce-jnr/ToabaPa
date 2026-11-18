@@ -1,9 +1,6 @@
 import { EventStatus, MembershipStatus, OrganizationRole, PaymentProviderName, PaymentStatus, Prisma, RecordStatus, VoteChannel } from '@prisma/client';
 import argon2 from 'argon2';
 import express, { Router } from 'express';
-import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import { z } from 'zod';
 import { prisma } from '../db/prisma.js';
 import { AppError } from '../errors/app-error.js';
@@ -12,6 +9,7 @@ import type { SessionPayload } from '../auth/session.js';
 import { normalizeGhanaPhone } from '../domain/phone.js';
 import { MAXIMUM_VOTES_PER_CHECKOUT } from '../domain/voting.js';
 import { auditRequestContext } from '../security/audit-request.js';
+import { uploadImage, type ImageExtension } from '../storage/image-storage.js';
 
 export const organizerRouter = Router();
 organizerRouter.use(requireAuth);
@@ -289,7 +287,7 @@ organizerRouter.get('/candidates', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-const candidateImageTypes = new Map([
+const candidateImageTypes = new Map<string, { extension: ImageExtension; signature: (data: Buffer) => boolean }>([
   ['image/jpeg', { extension: 'jpg', signature: (data: Buffer) => data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff }],
   ['image/png', { extension: 'png', signature: (data: Buffer) => data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) }],
   ['image/webp', { extension: 'webp', signature: (data: Buffer) => data.subarray(0, 4).toString() === 'RIFF' && data.subarray(8, 12).toString() === 'WEBP' }],
@@ -303,11 +301,8 @@ organizerRouter.post('/event-images', requireRoles(...managerRoles), express.raw
     if (!imageType || !Buffer.isBuffer(data) || data.length === 0 || !imageType.signature(data)) {
       throw new AppError(400, 'INVALID_EVENT_IMAGE', 'Upload a valid JPEG, PNG, or WebP image.');
     }
-    const directory = path.resolve(process.cwd(), 'backend', 'uploads', 'events');
-    await mkdir(directory, { recursive: true });
-    const filename = `${randomUUID()}.${imageType.extension}`;
-    await writeFile(path.join(directory, filename), data, { flag: 'wx' });
-    res.status(201).json({ success: true, data: { bannerUrl: `/api/v1/public/event-images/${filename}` } });
+    const bannerUrl = await uploadImage('events', data, imageType.extension);
+    res.status(201).json({ success: true, data: { bannerUrl } });
   } catch (error) { next(error); }
 });
 
@@ -335,16 +330,8 @@ organizerRouter.post('/candidate-images', requireRoles(...managerRoles), express
     if (!imageType || !Buffer.isBuffer(data) || data.length === 0 || !imageType.signature(data)) {
       throw new AppError(400, 'INVALID_CANDIDATE_IMAGE', 'Upload a valid JPEG, PNG, or WebP image.');
     }
-    const directory = path.resolve(
-      process.cwd(),
-      'backend',
-      'uploads',
-      'candidates',
-    );
-    await mkdir(directory, { recursive: true });
-    const filename = `${randomUUID()}.${imageType.extension}`;
-    await writeFile(path.join(directory, filename), data, { flag: 'wx' });
-    res.status(201).json({ success: true, data: { photoUrl: `/api/v1/public/candidate-images/${filename}` } });
+    const photoUrl = await uploadImage('candidates', data, imageType.extension);
+    res.status(201).json({ success: true, data: { photoUrl } });
   } catch (error) { next(error); }
 });
 

@@ -114,12 +114,24 @@ The API and Prisma CLI both use `DATABASE_URL`.
 | `ARKESEL_SENDER_ID` | Integration | Arkesel SMS sender ID |
 | `NALO_USSD_SECRET` | Production | Random NALO USSD callback secret of at least 24 characters |
 | `WEBHOOK_RETRY_INTERVAL_MS` | No | Paystack retry-worker interval; defaults to 30 seconds |
-| `STORAGE_ACCESS_KEY` | Uploads | Object-storage access key |
-| `STORAGE_SECRET_KEY` | Uploads | Object-storage secret key |
-| `STORAGE_BUCKET` | Uploads | Object-storage bucket |
-| `STORAGE_ENDPOINT` | Uploads | S3-compatible endpoint |
+| `AWS_REGION` | Yes | Region of the S3 bucket |
+| `AWS_S3_BUCKET` | Yes | Bucket for event, category, and candidate images |
+| `AWS_ACCESS_KEY_ID` | Yes | AWS access key ID; keep secret |
+| `AWS_SECRET_ACCESS_KEY` | Yes | AWS secret access key; keep secret |
 
 Do not commit `.env` or use live payment credentials during local development or automated tests.
+
+### Image storage
+
+New event, category, and candidate images are uploaded to the private S3 bucket.
+The API serves them through the existing `/api/v1/public/event-images/` and
+`/api/v1/public/candidate-images/` URLs. Grant the configured IAM principal
+`s3:PutObject` and `s3:GetObject` only for the bucket's `events/*` and
+`candidates/*` keys. Public bucket access and object ACLs are unnecessary.
+Existing files in `backend/uploads` remain readable on the current server, but
+must be copied to the corresponding S3 keys before moving to an ephemeral host.
+Run `npm run images:migrate:s3` on the machine that has those local files. It
+copies recognized image files to the private bucket using their existing keys.
 
 ## Running Locally
 
@@ -381,7 +393,7 @@ backend/
     payments/            Payment-provider contracts
     routes/              Public, auth, and organizer routes
     services/            Vote-order and vote-crediting services
-  uploads/               Uploaded event and candidate images
+  uploads/               Legacy local images; new uploads go to S3
 frontend/
   src/
     assets/              Local UI assets
@@ -396,7 +408,6 @@ frontend/
 The following work is intentionally not represented as production-ready:
 
 - External penetration testing and production Paystack/live webhook validation
-- Object-storage uploads for event and candidate images
 - Event draft persistence through the authenticated API
 - Settlements, exports, and Super Admin interfaces
 - Complete browser and integration test coverage

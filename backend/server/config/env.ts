@@ -25,6 +25,8 @@ const normalizedEnv = {
   ARKESEL_SENDER_ID: secret("ARKESEL_SENDER_ID"),
   NALO_USSD_SECRET: secret("NALO_USSD_SECRET"),
   TELEGRAM_TOKEN: secret("TELEGRAM_TOKEN"),
+  AWS_ACCESS_KEY_ID: secret("AWS_ACCESS_KEY_ID"),
+  AWS_SECRET_ACCESS_KEY: secret("AWS_SECRET_ACCESS_KEY"),
 };
 
 const envSchema = z.object({
@@ -36,6 +38,10 @@ const envSchema = z.object({
   API_URL: z.string().url(),
   SESSION_SECRET: z.string().min(32),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]),
+  AWS_REGION: z.string().trim().min(1),
+  AWS_S3_BUCKET: z.string().trim().min(3),
+  AWS_ACCESS_KEY_ID: z.string().trim().min(1),
+  AWS_SECRET_ACCESS_KEY: z.string().trim().min(1),
   PAYSTACK_PUBLIC_KEY: z.string().min(1).optional(),
   PAYSTACK_SECRET_KEY: z.string().min(1).optional(),
   PAYSTACK_WEBHOOK_SECRET: z.string().min(1).optional(),

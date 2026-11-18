@@ -1,6 +1,7 @@
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import express from 'express';
+import type { RequestHandler } from 'express';
 import path from 'node:path';
 import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
@@ -22,6 +23,19 @@ import {
 } from './middleware/rate-limit.js';
 import { financialRouter } from './routes/financial.routes.js';
 import { strictTransportSecurity } from './security/http-headers.js';
+import { getImage, type ImageKind } from './storage/image-storage.js';
+
+function serveStoredImage(kind: ImageKind): RequestHandler {
+  return async (req, res, next) => {
+    const filename = req.params.filename;
+    if (typeof filename !== 'string') return next();
+    try {
+      const image = await getImage(kind, filename);
+      if (!image) return next();
+      res.type(image.contentType).set('Cache-Control', 'public, max-age=86400').send(image.data);
+    } catch (error) { next(error); }
+  };
+}
 
 export const app = express();
 
@@ -146,6 +160,8 @@ app.use(
   apiRateLimit({ windowMs: 60_000, limit: 30 }),
   financialRouter,
 );
+app.get('/api/v1/public/candidate-images/:filename', serveStoredImage('candidates'));
+app.get('/api/v1/public/event-images/:filename', serveStoredImage('events'));
 app.use(
   '/api/v1/public/candidate-images',
   express.static(

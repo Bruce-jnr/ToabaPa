@@ -19,9 +19,11 @@
     "db:migrate": "prisma migrate dev --schema backend/prisma/schema.prisma",
     "db:deploy": "prisma migrate deploy --schema backend/prisma/schema.prisma",
     "db:seed": "tsx backend/prisma/seed.ts",
-    "db:studio": "prisma studio --schema backend/prisma/schema.prisma"
+    "db:studio": "prisma studio --schema backend/prisma/schema.prisma",
+    "images:migrate:s3": "tsx backend/server/storage/migrate-local-images.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1171.0",
     "@prisma/client": "^6.19.3",
     "argon2": "^0.45.1",
     "cookie-parser": "^1.4.7",
