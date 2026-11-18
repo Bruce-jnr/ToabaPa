@@ -1,5 +1,7 @@
 import { AppError } from '../errors/app-error.js';
 
+export const MAXIMUM_VOTES_PER_CHECKOUT = 10_000;
+
 export type VotingEvent = {
   status: 'DRAFT' | 'SCHEDULED' | 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED' | 'ARCHIVED';
   startAt: Date;

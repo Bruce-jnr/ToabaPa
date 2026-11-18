@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AppError } from '../errors/app-error.js';
-import { assertEventAcceptsVotes, calculateOrderAmount, type VotingEvent } from './voting.js';
+import { assertEventAcceptsVotes, calculateOrderAmount, MAXIMUM_VOTES_PER_CHECKOUT, type VotingEvent } from './voting.js';
 
 const activeEvent: VotingEvent = {
   status: 'ACTIVE',
@@ -14,6 +14,10 @@ const activeEvent: VotingEvent = {
 };
 
 describe('calculateOrderAmount', () => {
+  it('accepts 10,000 votes per checkout and rejects 10,001', () => {
+    expect(calculateOrderAmount({ quantity: MAXIMUM_VOTES_PER_CHECKOUT, minimumVotes: 1, maximumVotes: MAXIMUM_VOTES_PER_CHECKOUT, unitPrice: 100 })).toBe(1_000_000);
+    expect(() => calculateOrderAmount({ quantity: MAXIMUM_VOTES_PER_CHECKOUT + 1, minimumVotes: 1, maximumVotes: MAXIMUM_VOTES_PER_CHECKOUT, unitPrice: 100 })).toThrowError(expect.objectContaining({ code: 'INVALID_VOTE_QUANTITY' }));
+  });
   it('calculates money using integer minor units', () => {
     expect(calculateOrderAmount({ quantity: 50, minimumVotes: 1, maximumVotes: 500, unitPrice: 100 })).toBe(5000);
   });

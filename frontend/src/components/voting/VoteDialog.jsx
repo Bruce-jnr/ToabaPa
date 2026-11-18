@@ -10,11 +10,8 @@ import {
 import { useFocusTrap } from "../../lib/useFocusTrap.js";
 
 export function VoteDialog({ candidate, event, onClose }) {
-  const quickVotes = [1, 5, 10, 20, 50, 100, 500];
-  const [quantity, setQuantity] = useState(
-    Math.max(1, event.minimumVotes || 1),
-  );
-  const [custom, setCustom] = useState("");
+  const [voteInput, setVoteInput] = useState("");
+  const quantity = Number(voteInput);
   const [contact, setContact] = useState({ phone: "" });
   const [order, setOrder] = useState(null);
   const [state, setState] = useState({
@@ -27,28 +24,23 @@ export function VoteDialog({ candidate, event, onClose }) {
     allowEscape: !state.loading,
   });
 
-  function chooseQuantity(value) {
-    setQuantity(value);
-    setCustom("");
-    setState((current) => ({ ...current, error: "" }));
-  }
-  function setCustomQuantity(value) {
-    setCustom(value);
-    setQuantity(Number(value));
+  function updateVoteInput(value) {
+    setVoteInput(value.replace(/\D/g, "").slice(0, String(event.maximumVotesPerTransaction).length));
     setState((current) => ({ ...current, error: "" }));
   }
 
   async function createOrder(formEvent) {
     formEvent.preventDefault();
     if (
-      !Number.isInteger(quantity) ||
+      !/^[1-9]\d*$/.test(voteInput) ||
+      !Number.isSafeInteger(quantity) ||
       quantity < event.minimumVotes ||
       quantity > event.maximumVotesPerTransaction
     ) {
       setState({
         phase: "details",
         loading: false,
-        error: `Choose between ${event.minimumVotes} and ${event.maximumVotesPerTransaction} votes.`,
+        error: `Enter between ${event.minimumVotes} and ${event.maximumVotesPerTransaction} votes.`,
       });
       return;
     }
@@ -144,32 +136,23 @@ export function VoteDialog({ candidate, event, onClose }) {
             </div>
             <fieldset className="vote-quantity">
               <legend>How many votes?</legend>
-              <div>
-                {quickVotes.map((value) => (
-                  <button
-                    className={quantity === value && !custom ? "active" : ""}
-                    onClick={() => chooseQuantity(value)}
-                    type="button"
-                    key={value}
-                  >
-                    {value}
-                  </button>
-                ))}
-              </div>
               <label>
-                Custom quantity
+                Enter votes
                 <input
-                  type="number"
-                  min="1"
-                  max="500"
-                  step="1"
-                  value={custom}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={String(event.maximumVotesPerTransaction).length}
+                  value={voteInput}
                   onChange={(inputEvent) =>
-                    setCustomQuantity(inputEvent.target.value)
+                    updateVoteInput(inputEvent.target.value)
                   }
-                  placeholder="Enter votes"
+                  placeholder={`Enter ${event.minimumVotes}–${event.maximumVotesPerTransaction} votes`}
+                  aria-describedby="vote-quantity-help"
+                  required
                 />
               </label>
+              <small id="vote-quantity-help">Minimum {event.minimumVotes}, maximum {event.maximumVotesPerTransaction} votes.</small>
             </fieldset>
             <div className="vote-contact single">
               <label>

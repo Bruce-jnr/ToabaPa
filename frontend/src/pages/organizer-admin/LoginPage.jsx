@@ -243,7 +243,7 @@ export function LoginPage({ onLogin, portal = 'administrator' }) {
         <span className="eyebrow">
           {portal === 'superadmin'
             ? 'Superadmin console'
-            : 'Event administrator workspace'}
+            : 'Organizer login'}
         </span>
         <h1>
           {portal === 'superadmin'
@@ -294,8 +294,8 @@ export function LoginPage({ onLogin, portal = 'administrator' }) {
         >
           Forgot password?
         </button>
-        <Link className="back-public" to="/organizers">
-          Back to organizer overview
+        <Link className="back-public" to="/">
+          Back to home
         </Link>
       </form>
     </div>

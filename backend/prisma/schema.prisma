@@ -251,7 +251,7 @@ model Event {
   defaultVotePrice           Int
   platformFeeBps             Int               @default(0)
   minimumVotes               Int               @default(1)
-  maximumVotesPerTransaction Int
+  maximumVotesPerTransaction Int               @default(10000)
   status                     EventStatus       @default(DRAFT)
   resultsVisibility          ResultsVisibility @default(ADMIN_ONLY)
   resultsReleasedAt          DateTime?

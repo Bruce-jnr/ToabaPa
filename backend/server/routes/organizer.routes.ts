@@ -10,6 +10,7 @@ import { AppError } from '../errors/app-error.js';
 import { type AuthenticatedRequest, requireAuth, requireRoles } from '../middleware/auth.js';
 import type { SessionPayload } from '../auth/session.js';
 import { normalizeGhanaPhone } from '../domain/phone.js';
+import { MAXIMUM_VOTES_PER_CHECKOUT } from '../domain/voting.js';
 import { auditRequestContext } from '../security/audit-request.js';
 
 export const organizerRouter = Router();
@@ -17,7 +18,7 @@ organizerRouter.use(requireAuth);
 
 const managerRoles = [OrganizationRole.ORGANIZATION_OWNER, OrganizationRole.EVENT_ADMIN];
 const paymentRoles = [OrganizationRole.ORGANIZATION_OWNER, OrganizationRole.EVENT_ADMIN, OrganizationRole.FINANCE_ADMIN];
-const PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION = 1_000_000;
+const PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION = MAXIMUM_VOTES_PER_CHECKOUT;
 
 function eventAccessWhere(auth: SessionPayload): Prisma.EventWhereInput {
   return {
@@ -30,7 +31,7 @@ function requireSuperAdmin(req: express.Request, _res: express.Response, next: e
   if ((req as AuthenticatedRequest).auth.globalRole !== 'SUPER_ADMIN') return next(new AppError(403, 'SUPER_ADMIN_REQUIRED', 'Superadmin access is required.'));
   next();
 }
-const categorySchema = z.object({ eventId: z.string().cuid(), name: z.string().trim().min(2).max(100), description: z.string().trim().max(500).optional(), votePriceOverride: z.number().int().positive().nullable().optional() });
+const categorySchema = z.object({ eventId: z.string().cuid(), name: z.string().trim().min(2).max(100), description: z.string().trim().max(500).optional(), imageUrl: z.string().trim().regex(/^\/api\/v1\/public\/event-images\/[0-9a-f-]+\.(?:jpg|png|webp)$/).nullable().optional(), votePriceOverride: z.number().int().positive().nullable().optional() });
 const candidateSchema = z.object({ eventId: z.string().cuid(), categoryId: z.string().cuid(), name: z.string().trim().min(2).max(100), candidateCode: z.string().trim().toUpperCase().regex(/^[A-Z0-9-]{2,20}$/), biography: z.string().trim().max(2000).optional(), slogan: z.string().trim().max(200).optional(), photoUrl: z.string().trim().max(300).optional() });
 const eventSchema = z.object({
   name: z.string().trim().min(3).max(100),
@@ -235,7 +236,7 @@ organizerRouter.get('/categories', async (req, res, next) => {
   try {
     const auth = (req as AuthenticatedRequest).auth;
     const eventId = z.string().cuid().optional().parse(req.query.eventId);
-    const categories = await prisma.category.findMany({ where: { event: eventAccessWhere(auth), ...(eventId ? { eventId } : {}), status: { not: RecordStatus.ARCHIVED } }, include: { event: { select: { name: true } }, _count: { select: { candidates: true } } }, orderBy: [{ eventId: 'asc' }, { displayOrder: 'asc' }] });
+    const categories = await prisma.category.findMany({ where: { event: eventAccessWhere(auth), ...(eventId ? { eventId } : {}), status: { not: RecordStatus.ARCHIVED } }, include: { event: { select: { name: true, bannerUrl: true } }, _count: { select: { candidates: true } } }, orderBy: [{ eventId: 'asc' }, { displayOrder: 'asc' }] });
     res.json({ success: true, data: categories });
   } catch (error) { next(error); }
 });

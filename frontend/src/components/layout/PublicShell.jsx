@@ -21,10 +21,11 @@ export function PublicShell({ children }) {
         <nav className="desktop-nav" aria-label="Primary navigation">
           <NavLink to="/">Home</NavLink>
           <NavLink to="/events">Explore</NavLink>
+          <NavLink to="/how-it-works">How it works</NavLink>
           <NavLink to="/contact">Contact</NavLink>
         </nav>
         <div className="header-actions">
-          <Link className="organizer-link" to="/organizers">
+          <Link className="organizer-link" to="/organizers/login">
             For organizers
           </Link>
           <button
@@ -81,6 +82,9 @@ export function PublicShell({ children }) {
               <Link to="/events" onClick={() => setMenuOpen(false)}>
                 Explore events <ChevronRight />
               </Link>
+              <Link to="/how-it-works" onClick={() => setMenuOpen(false)}>
+                How it works <ChevronRight />
+              </Link>
               <Link
                 to="/events?focus=search"
                 onClick={() => setMenuOpen(false)}
@@ -89,7 +93,7 @@ export function PublicShell({ children }) {
               </Link>
               <Link
                 className="mobile-organizer-menu-link"
-                to="/organizers"
+                to="/organizers/login"
                 onClick={() => setMenuOpen(false)}
               >
                 For organizers <ChevronRight />
@@ -118,7 +122,8 @@ export function PublicShell({ children }) {
         <p>&copy; {new Date().getFullYear()} Toabapa. All rights reserved.</p>
         <nav aria-label="Footer navigation">
           <Link to="/events">Explore events</Link>
-          <Link to="/organizers">For organizers</Link>
+          <Link to="/how-it-works">How it works</Link>
+          <Link to="/organizers/login">For organizers</Link>
           <Link to="/contact">Contact us</Link>
           <Link to="/privacy">Privacy</Link>
           <Link to="/terms">Terms</Link>

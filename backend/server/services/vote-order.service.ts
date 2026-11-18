@@ -6,6 +6,7 @@ import { AppError } from "../errors/app-error.js";
 import {
   assertEventAcceptsVotes,
   calculateOrderAmount,
+  MAXIMUM_VOTES_PER_CHECKOUT,
 } from "../domain/voting.js";
 import { normalizeGhanaPhone } from "../domain/phone.js";
 
@@ -54,7 +55,7 @@ export async function createVoteOrder(
   const amount = calculateOrderAmount({
     quantity: input.quantity,
     minimumVotes: candidate.event.minimumVotes,
-    maximumVotes: candidate.event.maximumVotesPerTransaction,
+    maximumVotes: MAXIMUM_VOTES_PER_CHECKOUT,
     unitPrice,
   });
 

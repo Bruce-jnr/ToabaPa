@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { AlertCircle, CalendarDays, Users, Vote } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { AlertCircle, ArrowLeft, ArrowRight, CalendarDays, Users, Vote } from "lucide-react";
+import { Link, useParams } from "react-router-dom";
 import { PublicShell as Shell } from "../../components/layout/PublicShell.jsx";
 import {
   ErrorState,
   LoadingCards,
-  SearchForm,
   StatusBadge,
 } from "../../components/public/EventUi.jsx";
 import { VoteDialog } from "../../components/voting/VoteDialog.jsx";
@@ -13,11 +12,10 @@ import { formatDate } from "../../lib/format.js";
 import { usePublicData } from "../../lib/publicApi.js";
 
 export function EventDetailPage() {
-  const { slug } = useParams();
+  const { slug, categorySlug } = useParams();
   const event = usePublicData(
     `/api/v1/public/events/${encodeURIComponent(slug)}`,
   );
-  const [category, setCategory] = useState("all");
   const [voteCandidate, setVoteCandidate] = useState(null);
   if (event.loading)
     return (
@@ -36,17 +34,16 @@ export function EventDetailPage() {
       </Shell>
     );
   const data = event.data;
-  const visibleCategories =
-    category === "all"
-      ? data.categories
-      : data.categories.filter((item) => item.id === category);
+  const selectedCategory = categorySlug
+    ? data.categories.find((item) => item.slug === categorySlug)
+    : null;
   const price = (data.defaultVotePrice / 100).toLocaleString("en-GH", {
     style: "currency",
     currency: data.currency,
   });
   return (
     <Shell>
-      <section
+      {!categorySlug && <section
         className={`event-detail-hero ${data.bannerUrl ? "has-banner" : ""}`}
         style={
           data.bannerUrl
@@ -82,8 +79,13 @@ export function EventDetailPage() {
             </span>
           </div>
         </div>
-      </section>
+      </section>}
       <section className="contestant-section">
+        {categorySlug && (
+          <Link className="category-back-link" to={`/events/${data.slug}`}>
+            <ArrowLeft size={18} /> All categories in {data.name}
+          </Link>
+        )}
         {data.publicStatus === "paused" && (
           <div className="voting-paused-notice">
             <AlertCircle />
@@ -96,59 +98,69 @@ export function EventDetailPage() {
             </div>
           </div>
         )}
-        <div className="contestant-heading">
-          <div>
-            <span className="eyebrow">Meet the contestants</span>
-            <h2>Choose who you want to support.</h2>
-          </div>
-          <SearchForm compact />
-        </div>
-        <div
-          className="category-tabs"
-          role="tablist"
-          aria-label="Contestant categories"
-        >
-          <button
-            className={category === "all" ? "active" : ""}
-            onClick={() => setCategory("all")}
-            type="button"
-          >
-            All contestants <span>{data.candidates.length}</span>
-          </button>
-          {data.categories.map((item) => (
-            <button
-              className={category === item.id ? "active" : ""}
-              onClick={() => setCategory(item.id)}
-              type="button"
-              key={item.id}
-            >
-              {item.name} <span>{item._count.candidates}</span>
-            </button>
-          ))}
-        </div>
-        {visibleCategories.length ? (
-          <div className="category-contestant-groups">
-            {visibleCategories.map((categoryItem) => (
-              <CategoryContestants
-                category={categoryItem}
-                candidates={data.candidates.filter(
-                  (candidate) => candidate.categoryId === categoryItem.id,
-                )}
-                result={data.categoryResults.find(
-                  (item) => item.categoryId === categoryItem.id,
-                )}
-                eventStatus={data.publicStatus}
-                onVote={setVoteCandidate}
-                key={categoryItem.id}
-              />
-            ))}
-          </div>
-        ) : (
+        {selectedCategory ? (
+          <>
+            <h1 className="category-page-title">{selectedCategory.name} candidates and scores</h1>
+            <CategoryContestants
+              candidates={data.candidates.filter((candidate) => candidate.categoryId === selectedCategory.id)}
+              eventStatus={data.publicStatus}
+              onVote={setVoteCandidate}
+            />
+          </>
+        ) : categorySlug ? (
           <div className="message-state">
             <Users />
-            <strong>No contestants in this category.</strong>
-            <span>Check another category.</span>
+            <strong>Category not found.</strong>
+            <Link to={`/events/${data.slug}`}>View all categories</Link>
           </div>
+        ) : (
+          <>
+            <div className="contestant-heading">
+              <div>
+                <h2>Explore categories</h2>
+                <p>Choose a category to see its candidates and scores.</p>
+              </div>
+            </div>
+            {data.categories.length ? (
+              <div className="public-category-grid">
+                {data.categories.map((item) => (
+                  <Link
+                    className="event-card public-category-card"
+                    key={item.id}
+                    to={`/events/${data.slug}/categories/${item.slug}`}
+                    aria-label={`View ${item.name} candidates and scores`}
+                  >
+                    <div className="event-image">
+                      {(item.imageUrl || data.bannerUrl) ? (
+                        <img
+                          src={item.imageUrl || data.bannerUrl}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <div className="event-image-fallback"><Users /></div>
+                      )}
+                      <StatusBadge status={data.publicStatus} />
+                    </div>
+                    <div className="event-content">
+                      <p className="event-organizer">{data.name}</p>
+                      <h3>{item.name}</h3>
+                      {item.description && <p className="public-category-description">{item.description}</p>}
+                      <div className="event-meta"><span><Users /> {item._count.candidates} candidates</span></div>
+                      <span className="event-link">View candidates <ArrowRight /></span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="message-state">
+                <Users />
+                <strong>No categories yet.</strong>
+                <span>Check back when the organizer adds categories.</span>
+              </div>
+            )}
+          </>
         )}
       </section>
       {voteCandidate && (
@@ -163,104 +175,12 @@ export function EventDetailPage() {
 }
 
 function CategoryContestants({
-  category,
   candidates,
-  result,
   eventStatus,
   onVote,
 }) {
-  const rankedCandidates = [...candidates].sort(
-    (left, right) =>
-      (left.result?.rank ?? Number.MAX_SAFE_INTEGER) -
-        (right.result?.rank ?? Number.MAX_SAFE_INTEGER) ||
-      left.name.localeCompare(right.name),
-  );
-  const resultsVisible = [
-    "EXACT_TOTALS",
-    "PERCENTAGES",
-    "RANKING_ONLY",
-  ].includes(result?.visibility);
   return (
     <section className="category-contestant-group">
-      <div className="category-statistics">
-        <div>
-          <span>Category voting statistics</span>
-          <h3>{category.name}</h3>
-          <p>
-            {category.description ||
-              `${candidates.length} contestants in this category.`}
-          </p>
-        </div>
-        <div className="public-category-results">
-          {resultsVisible && rankedCandidates.length ? (
-            <div className="category-result-list">
-              {rankedCandidates.map((candidate, index) => {
-                const votes = candidate.result?.votes ?? 0;
-                const percentage =
-                  candidate.result?.percentage ??
-                  (result?.totalVotes ? (votes / result.totalVotes) * 100 : 0);
-                const initials = candidate.name
-                  .split(" ")
-                  .map((part) => part[0])
-                  .join("")
-                  .slice(0, 2);
-                return (
-                  <article
-                    className="category-result-candidate"
-                    key={candidate.id}
-                  >
-                    <strong className="result-rank">
-                      {candidate.result?.rank ?? index + 1}
-                    </strong>
-                    <span
-                      className={`result-photo ${candidate.photoUrl ? "has-photo" : ""}`}
-                    >
-                      {candidate.photoUrl ? (
-                        <img
-                          src={candidate.photoUrl}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        initials
-                      )}
-                    </span>
-                    <div className="result-candidate-name">
-                      <strong>{candidate.name}</strong>
-                      <small>{candidate.candidateCode}</small>
-                    </div>
-                    <div className="result-progress">
-                      <span style={{ width: `${percentage}%` }} />
-                    </div>
-                    <div className="result-total">
-                      <strong>
-                        {result.visibility === "EXACT_TOTALS"
-                          ? votes.toLocaleString()
-                          : result.visibility === "PERCENTAGES"
-                            ? `${percentage.toFixed(1)}%`
-                            : `#${candidate.result?.rank ?? index + 1}`}
-                      </strong>
-                      <small>
-                        {result.visibility === "EXACT_TOTALS"
-                          ? `${percentage.toFixed(1)}%`
-                          : result.visibility === "PERCENTAGES"
-                            ? `Rank #${candidate.result?.rank ?? index + 1}`
-                            : "Rank"}
-                      </small>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="public-results-private">
-              <strong>{candidates.length} contestants</strong>
-              <span>Voting statistics are currently private.</span>
-            </div>
-          )}
-        </div>
-      </div>
       {candidates.length ? (
         <div className="contestant-grid">
           {candidates.map((candidate) => {

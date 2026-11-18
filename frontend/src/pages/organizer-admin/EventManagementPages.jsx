@@ -111,7 +111,7 @@ export function DashboardOverview({ session }) {
                       </p>
                     </div>
                     <Link
-                      to="/dashboard/events"
+                      to={`/dashboard/categories?eventId=${encodeURIComponent(event.id)}`}
                       aria-label={`Manage ${event.name}`}
                     >
                       <ArrowRight />
@@ -236,9 +236,8 @@ export function EventsManagementPage({ session }) {
                 className="management-card admin-event-card"
                 key={event.id}
               >
-                <div
-                  className={`admin-event-banner ${event.bannerUrl ? "has-banner" : ""}`}
-                >
+                <Link className="admin-event-main-link" to={`/dashboard/categories?eventId=${encodeURIComponent(event.id)}`} aria-label={`View categories for ${event.name}`}>
+                <div className={`admin-event-banner ${event.bannerUrl ? "has-banner" : ""}`}>
                   {event.bannerUrl ? (
                     <img
                       src={event.bannerUrl}
@@ -261,7 +260,11 @@ export function EventsManagementPage({ session }) {
                   <h2>{event.name}</h2>
                   <p>{event.description || "No event description added."}</p>
                 </div>
+                </Link>
                 <footer className="admin-event-actions">
+                  <Link className="admin-event-categories-link" to={`/dashboard/categories?eventId=${encodeURIComponent(event.id)}`}>
+                    View categories <ArrowRight />
+                  </Link>
                   <button
                     className="icon-action"
                     type="button"
@@ -527,7 +530,7 @@ function MfaPanel({ enabledInitially, hasPhone }) {
         method: "DELETE",
         body: JSON.stringify({ password }),
       });
-      window.location.assign("/organizers");
+      window.location.assign("/organizers/login");
     } catch (error) {
       setState({ loading: false, error: error.message });
     }

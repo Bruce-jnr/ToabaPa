@@ -67,7 +67,7 @@ export function AdminLayout({ session, title, description, action, children }) {
     navigate(
       session.globalRole === "SUPER_ADMIN"
         ? "/superadmin/login"
-        : "/administrators/login",
+        : "/organizers/login",
     );
   }
 

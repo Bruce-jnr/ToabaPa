@@ -1,5 +1,5 @@
 import { lazy, Suspense, useLayoutEffect } from "react";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 function ScrollOnNavigation() {
   const { pathname, search, hash } = useLocation();
@@ -27,9 +27,9 @@ const PaymentVerifyPage = lazyNamed(
   () => import("./pages/public/PaymentVerifyPage.jsx"),
   "PaymentVerifyPage",
 );
-const OrganizerPage = lazyNamed(
-  () => import("./pages/public/OrganizerPage.jsx"),
-  "OrganizerPage",
+const HowItWorksPage = lazyNamed(
+  () => import("./pages/public/HowItWorksPage.jsx"),
+  "HowItWorksPage",
 );
 const ContactPage = lazyNamed(loadLegalPages, "ContactPage");
 const PlaceholderPage = lazyNamed(loadLegalPages, "PlaceholderPage");
@@ -63,17 +63,20 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/events" element={<ExplorePage />} />
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
           <Route path="/events/:slug" element={<EventDetailPage />} />
+          <Route path="/events/:slug/categories/:categorySlug" element={<EventDetailPage />} />
           <Route path="/payment/verify" element={<PaymentVerifyPage />} />
-          <Route path="/organizers" element={<OrganizerPage />} />
+          <Route path="/organizers" element={<Navigate to="/organizers/login" replace />} />
           <Route
             path="/superadmin/login"
             element={<LoginPortalRoute portal="superadmin" />}
           />
           <Route
-            path="/administrators/login"
+            path="/organizers/login"
             element={<LoginPortalRoute portal="administrator" />}
           />
+          <Route path="/administrators/login" element={<Navigate to="/organizers/login" replace />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/contact" element={<ContactPage />} />

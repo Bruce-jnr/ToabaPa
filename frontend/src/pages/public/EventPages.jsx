@@ -74,6 +74,9 @@ export function HomePage() {
         <ScrollReveal>
           <span className="eyebrow">How voting works</span>
           <h2>Voting in three clear steps</h2>
+          <Link className="how-organizer-link" to="/how-it-works">
+            See how it works for organizers <ArrowRight />
+          </Link>
         </ScrollReveal>
         <ol>
           <ScrollReveal as="li">

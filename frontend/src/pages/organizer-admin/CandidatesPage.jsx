@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useState } from "react";
 import {
   Archive,
+  ArrowLeft,
   ChevronDown,
   ImagePlus,
   LoaderCircle,
@@ -8,6 +9,7 @@ import {
   Plus,
   Users,
 } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   AdminLayout,
   Dialog,
@@ -18,7 +20,9 @@ import { api } from "./adminApi.js";
 import { useOrganizerContext } from "./useOrganizerContext.js";
 export function CandidatesPage({ session }) {
   const context = useOrganizerContext();
-  const [eventId, setEventId] = useState("");
+  const [params, setParams] = useSearchParams();
+  const eventId = params.get("eventId") || "";
+  const categoryId = params.get("categoryId") || "";
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +46,10 @@ export function CandidatesPage({ session }) {
       .finally(() => setLoading(false));
   }, [eventId]);
   useEffect(load, [load]);
+  const visibleItems = categoryId
+    ? items.filter((item) => item.categoryId === categoryId)
+    : items;
+  const selectedCategory = categories.find((item) => item.id === categoryId);
   async function archive(item) {
     if (!window.confirm(`Archive ${item.name}?`)) return;
     try {
@@ -56,7 +64,7 @@ export function CandidatesPage({ session }) {
   return (
     <AdminLayout
       session={session}
-      title="Candidates"
+      title={selectedCategory ? `${selectedCategory.name} candidates` : "Candidates"}
       description="Manage candidate identity, codes, and category placement."
       action={
         <button
@@ -69,13 +77,14 @@ export function CandidatesPage({ session }) {
         </button>
       }
     >
+      {eventId && <Link className="dashboard-flow-back" to={`/dashboard/categories?eventId=${encodeURIComponent(eventId)}`}><ArrowLeft /> {context.events.find((event) => event.id === eventId)?.name || "Event"} categories</Link>}
       <div className="management-toolbar">
         <label className="toolbar-filter-field">
           <span>Event</span>
           <div className="toolbar-select-control">
             <select
               value={eventId}
-              onChange={(event) => setEventId(event.target.value)}
+              onChange={(event) => setParams(event.target.value ? { eventId: event.target.value } : {})}
             >
               <option value="">All events</option>
               {context.events.map((event) => (
@@ -87,12 +96,22 @@ export function CandidatesPage({ session }) {
             <ChevronDown />
           </div>
         </label>
-        <span>{items.length} candidates</span>
+        <label className="toolbar-filter-field">
+          <span>Category</span>
+          <div className="toolbar-select-control">
+            <select value={categoryId} onChange={(event) => setParams(event.target.value ? { ...(eventId ? { eventId } : {}), categoryId: event.target.value } : eventId ? { eventId } : {})}>
+              <option value="">All categories</option>
+              {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+            </select>
+            <ChevronDown />
+          </div>
+        </label>
+        <span>{visibleItems.length} candidates</span>
       </div>
       {error && <div className="admin-alert">{error}</div>}
       {loading ? (
         <AdminLoading />
-      ) : items.length ? (
+      ) : visibleItems.length ? (
         <div className="candidate-table-wrap">
           <table className={`admin-table candidates-table${session.globalRole === "SUPER_ADMIN" ? "" : " candidates-table-single-action"}`}>
             <thead>
@@ -108,7 +127,7 @@ export function CandidatesPage({ session }) {
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <tr key={item.id}>
                   <td>
                     <div className="table-person">
@@ -172,13 +191,15 @@ export function CandidatesPage({ session }) {
         <AdminEmpty
           icon={Users}
           title="No candidates yet"
-          text="Add candidates after creating an event category."
+          text={categoryId ? "Add the first candidate to this category." : "Add candidates after creating an event category."}
         />
       )}
       {showForm && (
         <CandidateForm
           events={context.events}
           categories={categories}
+          initialEventId={eventId}
+          initialCategoryId={categoryId}
           onClose={() => setShowForm(false)}
           onCreated={() => {
             setShowForm(false);
@@ -202,10 +223,10 @@ export function CandidatesPage({ session }) {
   );
 }
 
-function CandidateForm({ events, categories, item, onClose, onCreated }) {
+function CandidateForm({ events, categories, item, initialEventId, initialCategoryId, onClose, onCreated }) {
   const [form, setForm] = useState({
-    eventId: item?.eventId || events[0]?.id || "",
-    categoryId: item?.categoryId || "",
+    eventId: item?.eventId || initialEventId || events[0]?.id || "",
+    categoryId: item?.categoryId || initialCategoryId || "",
     name: item?.name || "",
     candidateCode: item?.candidateCode || "",
     slogan: item?.slogan || "",

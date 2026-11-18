@@ -2,6 +2,7 @@ import { EventStatus, RecordStatus } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db/prisma.js';
+import { MAXIMUM_VOTES_PER_CHECKOUT } from '../domain/voting.js';
 
 const eventQuerySchema = z.object({
   status: z.enum(['all', 'live', 'upcoming', 'ended']).default('all'),
@@ -81,7 +82,7 @@ publicRouter.get('/events/:slug', async (req, res, next) => {
         organization: { select: { name: true, logoUrl: true } },
         categories: {
           where: { status: RecordStatus.ACTIVE }, orderBy: { displayOrder: 'asc' },
-          select: { id: true, name: true, slug: true, description: true, votePriceOverride: true, _count: { select: { candidates: { where: { status: RecordStatus.ACTIVE } } } } },
+          select: { id: true, name: true, slug: true, description: true, imageUrl: true, votePriceOverride: true, _count: { select: { candidates: { where: { status: RecordStatus.ACTIVE } } } } },
         },
       },
     });
@@ -121,7 +122,7 @@ publicRouter.get('/events/:slug', async (req, res, next) => {
       const rank = categoryCandidates.findIndex((item) => item.id === candidate.id) + 1;
       return { ...candidate, result: visibility === 'EXACT_TOTALS' ? { votes, rank } : visibility === 'PERCENTAGES' ? { percentage: categoryTotal ? Math.round((votes / categoryTotal) * 1000) / 10 : 0, rank } : visibility === 'RANKING_ONLY' ? { rank } : null };
     });
-    res.json({ success: true, data: { ...event, publicStatus: publicEventStatus(event), candidates: publicCandidates, categoryResults } });
+    res.json({ success: true, data: { ...event, maximumVotesPerTransaction: MAXIMUM_VOTES_PER_CHECKOUT, publicStatus: publicEventStatus(event), candidates: publicCandidates, categoryResults } });
   } catch (error) { next(error); }
 });
 

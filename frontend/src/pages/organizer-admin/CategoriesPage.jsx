@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useState } from "react";
 import {
   Archive,
+  ArrowLeft,
   ChevronDown,
   Pencil,
   Plus,
@@ -8,6 +9,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   AdminLayout,
   Dialog,
@@ -18,7 +20,8 @@ import { api } from "./adminApi.js";
 import { useOrganizerContext } from "./useOrganizerContext.js";
 export function CategoriesPage({ session }) {
   const context = useOrganizerContext();
-  const [eventId, setEventId] = useState("");
+  const [params, setParams] = useSearchParams();
+  const eventId = params.get("eventId") || "";
   const [items, setItems] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
@@ -57,8 +60,8 @@ export function CategoriesPage({ session }) {
   return (
     <AdminLayout
       session={session}
-      title="Categories"
-      description="Organize candidates within each event."
+      title={eventId ? `${context.events.find((event) => event.id === eventId)?.name || "Event"} categories` : "Categories"}
+      description="Choose a category to view its candidates."
       action={
         <button
           className="primary-action"
@@ -70,13 +73,17 @@ export function CategoriesPage({ session }) {
         </button>
       }
     >
+      {eventId && <Link className="dashboard-flow-back" to="/dashboard/events"><ArrowLeft /> All events</Link>}
       <div className="management-toolbar">
         <label className="toolbar-filter-field">
           <span>Event</span>
           <div className="toolbar-select-control">
             <select
               value={eventId}
-              onChange={(event) => setEventId(event.target.value)}
+              onChange={(event) => {
+                setSelectedCategoryId("");
+                setParams(event.target.value ? { eventId: event.target.value } : {});
+              }}
             >
               <option value="">All events</option>
               {context.events.map((event) => (
@@ -99,45 +106,40 @@ export function CategoriesPage({ session }) {
             <div className="category-card-group" key={item.id}>
               <article
                 className={`management-card category-drilldown-card ${selectedCategoryId === item.id ? "selected" : ""}`}
-                role="button"
-                tabIndex="0"
-                aria-expanded={selectedCategoryId === item.id}
-                onClick={() =>
-                  setSelectedCategoryId((current) =>
-                    current === item.id ? "" : item.id,
-                  )
-                }
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    setSelectedCategoryId((current) =>
-                      current === item.id ? "" : item.id,
-                    );
-                  }
-                }}
               >
-                <div className="management-card-icon">
-                  <Tag />
-                </div>
-                <span>{item.event.name}</span>
-                <h2>{item.name}</h2>
-                <p>{item.description || "No description added."}</p>
+                <Link className="category-main-link" to={`/dashboard/candidates?eventId=${encodeURIComponent(item.eventId)}&categoryId=${encodeURIComponent(item.id)}`} aria-label={`View candidates in ${item.name}`}>
+                  <div className="category-card-image">
+                    {item.imageUrl || item.event.bannerUrl ? (
+                      <img src={item.imageUrl || item.event.bannerUrl} alt="" loading="lazy" decoding="async" />
+                    ) : (
+                      <Tag aria-hidden="true" />
+                    )}
+                  </div>
+                  <div className="category-card-content">
+                    <span>{item.event.name}</span>
+                    <h2>{item.name}</h2>
+                    <p>{item.description || "No description added."}</p>
+                  </div>
+                </Link>
                 <footer>
-                  <strong>{item._count.candidates} candidates</strong>
+                  <Link className="category-candidates-link" to={`/dashboard/candidates?eventId=${encodeURIComponent(item.eventId)}&categoryId=${encodeURIComponent(item.id)}`}>
+                    {item._count.candidates} candidates
+                  </Link>
                   <div className="card-actions">
+                    <button type="button" title="View results" aria-label={`View results for ${item.name}`} aria-expanded={selectedCategoryId === item.id} onClick={() => setSelectedCategoryId((current) => current === item.id ? "" : item.id)}>
+                      <Users />
+                    </button>
                     <button
                       type="button"
                       title="Edit category"
-                      onClick={(event) => {
-                        event.stopPropagation();
+                      onClick={() => {
                         setEditing(item);
                       }}
                     >
                       <Pencil />
                     </button>
                     <button
-                      onClick={(event) => {
-                        event.stopPropagation();
+                      onClick={() => {
                         archive(item);
                       }}
                       type="button"
@@ -183,6 +185,7 @@ export function CategoriesPage({ session }) {
       {showForm && (
         <CategoryForm
           events={context.events}
+          initialEventId={eventId}
           onClose={() => setShowForm(false)}
           onCreated={() => {
             setShowForm(false);
@@ -289,19 +292,33 @@ function CategoryCandidatesPanel({ category, candidates, onClose }) {
   );
 }
 
-function CategoryForm({ events, item, onClose, onCreated }) {
+function CategoryForm({ events, item, initialEventId, onClose, onCreated }) {
   const [form, setForm] = useState({
-    eventId: item?.eventId || events[0]?.id || "",
+    eventId: item?.eventId || initialEventId || events[0]?.id || "",
     name: item?.name || "",
     description: item?.description || "",
+    imageUrl: item?.imageUrl || "",
     votePriceOverride: item?.votePriceOverride
       ? String(item.votePriceOverride / 100)
       : "",
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   async function submit(event) {
     event.preventDefault();
+    setSaving(true);
+    setError("");
     try {
+      let imageUrl = form.imageUrl || null;
+      if (imageFile) {
+        const uploaded = await api("/api/v1/organizer/event-images", {
+          method: "POST",
+          headers: { "Content-Type": imageFile.type },
+          body: imageFile,
+        });
+        imageUrl = uploaded.bannerUrl;
+      }
       await api(
         item
           ? `/api/v1/organizer/categories/${item.id}`
@@ -311,6 +328,7 @@ function CategoryForm({ events, item, onClose, onCreated }) {
           body: JSON.stringify({
             ...form,
             ...(item ? { eventId: undefined } : {}),
+            imageUrl,
             votePriceOverride: form.votePriceOverride
               ? Math.round(Number(form.votePriceOverride) * 100)
               : null,
@@ -320,6 +338,8 @@ function CategoryForm({ events, item, onClose, onCreated }) {
       onCreated();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setSaving(false);
     }
   }
   return (
@@ -368,6 +388,19 @@ function CategoryForm({ events, item, onClose, onCreated }) {
           />
         </label>
         <label>
+          Category image <small>Optional; uses the event banner when empty</small>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(event) => setImageFile(event.target.files?.[0] || null)}
+          />
+        </label>
+        {form.imageUrl && !imageFile && (
+          <button className="secondary-action" type="button" onClick={() => setForm({ ...form, imageUrl: "" })}>
+            Use event banner
+          </button>
+        )}
+        <label>
           Price override in GHS <small>Optional</small>
           <input
             type="number"
@@ -385,8 +418,8 @@ function CategoryForm({ events, item, onClose, onCreated }) {
           <button className="secondary-action" type="button" onClick={onClose}>
             Cancel
           </button>
-          <button className="primary-action" type="submit">
-            {item ? "Save changes" : "Create category"}
+          <button className="primary-action" type="submit" disabled={saving}>
+            {saving ? "Saving..." : item ? "Save changes" : "Create category"}
           </button>
         </div>
       </form>

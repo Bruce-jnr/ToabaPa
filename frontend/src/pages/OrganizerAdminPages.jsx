@@ -125,7 +125,7 @@ export function PaymentsRoute() {
 function PortalRedirect() {
   const navigate = useNavigate();
   useEffect(() => {
-    navigate('/administrators/login', { replace: true });
+    navigate('/organizers/login', { replace: true });
   }, [navigate]);
   return (
     <div className="admin-loading">

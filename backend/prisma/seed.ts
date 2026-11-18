@@ -52,7 +52,7 @@ async function main() {
       endAt: new Date("2026-12-15T23:59:59Z"),
       defaultVotePrice: 100,
       minimumVotes: 1,
-      maximumVotesPerTransaction: 500,
+      maximumVotesPerTransaction: 10_000,
       status: EventStatus.ACTIVE,
       resultsVisibility: ResultsVisibility.EXACT_TOTALS,
       webVotingEnabled: true,

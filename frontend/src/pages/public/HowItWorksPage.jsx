@@ -26,7 +26,7 @@ const organizerCapabilities = [
   },
 ];
 
-export function OrganizerPage() {
+export function HowItWorksPage() {
   return (
     <Shell>
       <section
@@ -34,17 +34,15 @@ export function OrganizerPage() {
         style={{ backgroundImage: `url(${organizerHero})` }}
       >
         <div className="organizer-hero-content">
-          <span className="organizer-kicker">
-            Built for awards, pageants, and competitions
-          </span>
+          <span className="organizer-kicker">How it works for organizers</span>
           <h1>Run voting with confidence from nomination to results.</h1>
           <p>
             Create your event, manage candidates, accept paid votes, and track
             every verified transaction in one organized workspace.
           </p>
           <div className="organizer-hero-actions">
-            <Link className="organizer-primary" to="/administrators/login">
-              Administrator sign in <ArrowRight />
+            <Link className="organizer-primary" to="/organizers/login">
+              Organizer login <ArrowRight />
             </Link>
             <a className="organizer-secondary" href="#workflow">
               See how it works
@@ -98,7 +96,7 @@ export function OrganizerPage() {
             Build the event in stages, open voting when you are ready, and keep
             financial and vote records traceable after results are announced.
           </p>
-          <Link to="/administrators/login">
+          <Link to="/organizers/login">
             Open Organizers workspace <ArrowRight />
           </Link>
         </div>
@@ -226,12 +224,10 @@ export function OrganizerPage() {
         <span className="eyebrow">Prepare your next event</span>
         <h2>Give your team a better way to run public voting.</h2>
         <p>Start with event details, schedule, pricing, and voting channels.</p>
-        <Link className="organizer-primary" to="/administrators/login">
-          Administrator sign in <ArrowRight />
+        <Link className="organizer-primary" to="/organizers/login">
+          Organizer login <ArrowRight />
         </Link>
       </section>
     </Shell>
   );
 }
-
-
