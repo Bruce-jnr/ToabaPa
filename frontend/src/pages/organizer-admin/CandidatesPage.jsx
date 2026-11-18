@@ -18,6 +18,7 @@ import {
 } from "./AdminShell.jsx";
 import { api } from "./adminApi.js";
 import { useOrganizerContext } from "./useOrganizerContext.js";
+import { SnackbarNotice } from "../../components/SnackbarProvider.jsx";
 export function CandidatesPage({ session }) {
   const context = useOrganizerContext();
   const [params, setParams] = useSearchParams();
@@ -108,7 +109,7 @@ export function CandidatesPage({ session }) {
         </label>
         <span>{visibleItems.length} candidates</span>
       </div>
-      {error && <div className="admin-alert">{error}</div>}
+      <SnackbarNotice message={error} />
       {loading ? (
         <AdminLoading />
       ) : visibleItems.length ? (
@@ -405,7 +406,7 @@ function CandidateForm({ events, categories, item, initialEventId, initialCatego
             }
           />
         </label>
-        {error && <div className="admin-form-error">{error}</div>}
+        <SnackbarNotice message={error} />
         <div className="dialog-actions">
           <button className="secondary-action" type="button" onClick={onClose}>
             Cancel

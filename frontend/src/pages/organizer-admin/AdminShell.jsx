@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { useNavigate, Link, NavLink } from "react-router-dom";
 import {
+  Archive,
   CalendarDays,
   ClipboardList,
   LayoutDashboard,
@@ -24,8 +25,11 @@ function DashboardNavigation({ session, onNavigate }) {
       <NavLink to="/dashboard" end onClick={onNavigate}>
         <LayoutDashboard /> Overview
       </NavLink>
-      <NavLink to="/dashboard/events" onClick={onNavigate}>
+      <NavLink to="/dashboard/events" end onClick={onNavigate}>
         <CalendarDays /> Events
+      </NavLink>
+      <NavLink to="/dashboard/events/archived" onClick={onNavigate}>
+        <Archive /> Archived events
       </NavLink>
       <NavLink to="/dashboard/categories" onClick={onNavigate}>
         <Tag /> Categories

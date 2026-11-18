@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SnackbarNotice } from '../../components/SnackbarProvider.jsx';
 import logo from '../../assets/logo.png';
 import { api } from './adminApi.js';
 export function LoginPage({ onLogin, portal = 'administrator' }) {
@@ -105,9 +106,7 @@ export function LoginPage({ onLogin, portal = 'administrator' }) {
             />
           </label>
           {state.error && (
-            <div className="admin-form-error" role="alert">
-              {state.error}
-            </div>
+            <div className="admin-form-error" role="alert">{state.error}</div>
           )}
           <button
             className="primary-action"
@@ -204,9 +203,7 @@ export function LoginPage({ onLogin, portal = 'administrator' }) {
             </>
           )}
           {state.error && (
-            <div className="admin-form-error" role="alert">
-              {state.error}
-            </div>
+            <div className="admin-form-error" role="alert">{state.error}</div>
           )}
           <button
             className="primary-action"
@@ -272,11 +269,7 @@ export function LoginPage({ onLogin, portal = 'administrator' }) {
             minLength={6}
           />
         </label>
-        {state.error && (
-          <div className="admin-form-error" role="alert">
-            {state.error}
-          </div>
-        )}
+        <SnackbarNotice message={state.error} />
         <button
           className="primary-action"
           disabled={state.loading}

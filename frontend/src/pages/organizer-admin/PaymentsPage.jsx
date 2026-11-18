@@ -18,6 +18,7 @@ import {
 import { api } from './adminApi.js';
 import { quoteCsvCell } from './csv.js';
 import { useOrganizerContext } from './useOrganizerContext.js';
+import { SnackbarNotice } from "../../components/SnackbarProvider.jsx";
 export function PaymentsPage({ session }) {
   const context = useOrganizerContext();
   const [search, setSearch] = useState('');
@@ -236,7 +237,7 @@ export function PaymentsPage({ session }) {
           <Download /> Export page
         </button>
       </div>
-      {error && <div className="admin-alert">{error}</div>}
+      <SnackbarNotice message={error} />
       {loading ? (
         <AdminLoading />
       ) : data.items.length ? (

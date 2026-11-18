@@ -1,5 +1,6 @@
 import { lazy, Suspense, useLayoutEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { SnackbarProvider } from "./components/SnackbarProvider.jsx";
 
 function ScrollOnNavigation() {
   const { pathname, search, hash } = useLocation();
@@ -42,6 +43,7 @@ const CategoriesRoute = lazyNamed(loadAdmin, "CategoriesRoute");
 const CreateEventRoute = lazyNamed(loadAdmin, "CreateEventRoute");
 const DashboardRoute = lazyNamed(loadAdmin, "DashboardRoute");
 const EventsRoute = lazyNamed(loadAdmin, "EventsRoute");
+const ArchivedEventsRoute = lazyNamed(loadAdmin, "ArchivedEventsRoute");
 const FinancialRoute = lazyNamed(loadAdmin, "FinancialRoute");
 const LoginPortalRoute = lazyNamed(loadAdmin, "LoginPortalRoute");
 const PaymentsRoute = lazyNamed(loadAdmin, "PaymentsRoute");
@@ -57,6 +59,7 @@ function RouteLoading() {
 
 function App() {
   return (
+    <SnackbarProvider>
     <BrowserRouter>
       <ScrollOnNavigation />
       <Suspense fallback={<RouteLoading />}>
@@ -83,6 +86,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardRoute />} />
           <Route path="/dashboard/events/new" element={<CreateEventRoute />} />
           <Route path="/dashboard/events" element={<EventsRoute />} />
+          <Route path="/dashboard/events/archived" element={<ArchivedEventsRoute />} />
           <Route path="/dashboard/categories" element={<CategoriesRoute />} />
           <Route path="/dashboard/candidates" element={<CandidatesRoute />} />
           <Route path="/dashboard/payments" element={<PaymentsRoute />} />
@@ -98,6 +102,7 @@ function App() {
         </Routes>
       </Suspense>
     </BrowserRouter>
+    </SnackbarProvider>
   );
 }
 

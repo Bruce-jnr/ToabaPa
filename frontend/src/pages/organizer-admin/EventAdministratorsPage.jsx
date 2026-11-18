@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-react";
 import { AdminLayout, AdminLoading, AdminEmpty } from "./AdminShell.jsx";
 import { api } from "./adminApi.js";
 import { useOrganizerContext } from "./useOrganizerContext.js";
+import { SnackbarNotice } from "../../components/SnackbarProvider.jsx";
 export function EventAdministratorsPage({ session }) {
   const context = useOrganizerContext();
   const [items, setItems] = useState([]);
@@ -75,8 +76,8 @@ export function EventAdministratorsPage({ session }) {
       title="Event administrators"
       description="Register administrators and assign the events they are allowed to manage."
     >
-      {state.error && <div className="admin-alert">{state.error}</div>}
-      {state.message && <div className="admin-success">{state.message}</div>}
+      <SnackbarNotice message={state.error} />
+      <SnackbarNotice message={state.message} type="success" />
       <section className="administrator-registration">
         <div>
           <span className="eyebrow">New account</span>

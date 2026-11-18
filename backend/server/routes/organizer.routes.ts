@@ -8,6 +8,7 @@ import { type AuthenticatedRequest, requireAuth, requireRoles } from '../middlew
 import type { SessionPayload } from '../auth/session.js';
 import { normalizeGhanaPhone } from '../domain/phone.js';
 import { MAXIMUM_VOTES_PER_CHECKOUT } from '../domain/voting.js';
+import { restoredEventStatus } from '../domain/event-restoration.js';
 import { auditRequestContext } from '../security/audit-request.js';
 import { uploadImage, type ImageExtension } from '../storage/image-storage.js';
 
@@ -39,7 +40,7 @@ const eventSchema = z.object({
   timezone: z.string().trim().min(2).max(60),
   currency: z.string().trim().length(3).transform((value) => value.toUpperCase()),
   defaultVotePrice: z.number().int().positive(),
-  platformFeeBps: z.number().int().min(0).max(10_000),
+  platformFeeBps: z.number().int().min(0).max(10_000).optional(),
   minimumVotes: z.number().int().positive().max(PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION),
   webVotingEnabled: z.boolean(),
   ussdVotingEnabled: z.boolean(),
@@ -70,6 +71,18 @@ organizerRouter.get('/context', async (req, res, next) => {
     const auth = (req as AuthenticatedRequest).auth;
     const events = await prisma.event.findMany({ where: { ...eventAccessWhere(auth), status: { not: EventStatus.ARCHIVED } }, select: { id: true, name: true, description: true, status: true, bannerUrl: true, startAt: true, endAt: true, timezone: true, currency: true, defaultVotePrice: true, platformFeeBps: true, minimumVotes: true, webVotingEnabled: true, ussdVotingEnabled: true, resultsVisibility: true }, orderBy: { createdAt: 'desc' } });
     res.json({ success: true, data: { events } });
+  } catch (error) { next(error); }
+});
+
+organizerRouter.get('/events/archived', requireRoles(...managerRoles), async (req, res, next) => {
+  try {
+    const auth = (req as AuthenticatedRequest).auth;
+    const events = await prisma.event.findMany({
+      where: { ...eventAccessWhere(auth), status: EventStatus.ARCHIVED },
+      select: { id: true, name: true, description: true, bannerUrl: true, startAt: true, endAt: true },
+      orderBy: { updatedAt: 'desc' },
+    });
+    res.json({ success: true, data: events });
   } catch (error) { next(error); }
 });
 
@@ -140,12 +153,13 @@ organizerRouter.patch('/event-administrators/:id', requireSuperAdmin, async (req
 organizerRouter.post('/events', requireRoles(...managerRoles), async (req, res, next) => {
   try {
     const input = eventSchema.parse(req.body);
-    const { organizationId, userId } = (req as AuthenticatedRequest).auth;
+    const { organizationId, userId, globalRole } = (req as AuthenticatedRequest).auth;
+    if (globalRole !== 'SUPER_ADMIN' && input.platformFeeBps !== undefined) throw new AppError(403, 'SUPER_ADMIN_REQUIRED', 'Only a superadmin can set the platform fee.');
     const now = new Date();
     const status = input.startAt > now ? EventStatus.SCHEDULED : EventStatus.ACTIVE;
     const event = await prisma.$transaction(async (tx) => {
       const created = await tx.event.create({
-        data: { ...input, maximumVotesPerTransaction: PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION, organizationId, slug: `${slugify(input.name)}-${Date.now().toString(36)}`, description: input.description || null, status },
+        data: { ...input, platformFeeBps: input.platformFeeBps ?? 0, maximumVotesPerTransaction: PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION, organizationId, slug: `${slugify(input.name)}-${Date.now().toString(36)}`, description: input.description || null, status },
       });
       if ((req as AuthenticatedRequest).auth.globalRole !== 'SUPER_ADMIN') {
         const membership = await tx.organizationMembership.findUniqueOrThrow({ where: { organizationId_userId: { organizationId, userId } } });
@@ -163,6 +177,7 @@ organizerRouter.patch('/events/:id', requireRoles(...managerRoles), async (req, 
     const id = z.string().cuid().parse(req.params.id);
     const input = eventPatchSchema.parse(req.body);
     const auth = (req as AuthenticatedRequest).auth;
+    if (auth.globalRole !== 'SUPER_ADMIN' && input.platformFeeBps !== undefined) throw new AppError(403, 'SUPER_ADMIN_REQUIRED', 'Only a superadmin can set the platform fee.');
     const current = await prisma.event.findFirst({ where: { id, ...eventAccessWhere(auth) } });
     if (!current) throw new AppError(404, 'EVENT_NOT_FOUND', 'Event was not found.');
     const merged = {
@@ -227,6 +242,23 @@ organizerRouter.delete('/events/:id', requireRoles(...managerRoles), async (req,
       await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, ...auditRequestContext(req), action: 'EVENT_ARCHIVED', resourceType: 'Event', resourceId: id, oldValue: { status: event.status }, newValue: { status: EventStatus.ARCHIVED } } });
     });
     res.json({ success: true, data: null, message: 'Event archived.' });
+  } catch (error) { next(error); }
+});
+
+organizerRouter.patch('/events/:id/restore', requireRoles(...managerRoles), async (req, res, next) => {
+  try {
+    const id = z.string().cuid().parse(req.params.id);
+    const auth = (req as AuthenticatedRequest).auth;
+    const event = await prisma.event.findFirst({ where: { id, ...eventAccessWhere(auth), status: EventStatus.ARCHIVED } });
+    if (!event) throw new AppError(404, 'ARCHIVED_EVENT_NOT_FOUND', 'Archived event was not found.');
+    const status = restoredEventStatus(event.startAt, event.endAt, new Date());
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.event.updateMany({ where: { id, status: EventStatus.ARCHIVED }, data: { status } });
+      if (result.count !== 1) throw new AppError(409, 'EVENT_ALREADY_RESTORED', 'This event has already been restored.');
+      await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, ...auditRequestContext(req), action: 'EVENT_RESTORED', resourceType: 'Event', resourceId: id, oldValue: { status: EventStatus.ARCHIVED }, newValue: { status } } });
+      return tx.event.findUniqueOrThrow({ where: { id }, select: { id: true, name: true, status: true } });
+    });
+    res.json({ success: true, data: updated, message: 'Event restored.' });
   } catch (error) { next(error); }
 });
 

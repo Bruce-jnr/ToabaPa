@@ -12,6 +12,7 @@ import { api } from './organizer-admin/adminApi.js';
 import { LoginPage } from './organizer-admin/LoginPage.jsx';
 import {
   DashboardOverview,
+  ArchivedEventsPage,
   EventsManagementPage,
   SettingsPage,
 } from './organizer-admin/EventManagementPages.jsx';
@@ -58,7 +59,9 @@ function OrganizerGate({ page }) {
       );
   else if (page === 'events')
     content = <EventsManagementPage session={session} />;
-  else if (page === 'create-event') content = <CreateEventPage />;
+  else if (page === 'archived-events')
+    content = <ArchivedEventsPage session={session} />;
+  else if (page === 'create-event') content = <CreateEventPage session={session} />;
   else content = <DashboardOverview session={session} />;
   return <DashboardErrorBoundary>{content}</DashboardErrorBoundary>;
 }
@@ -186,6 +189,9 @@ export function DashboardRoute() {
 }
 export function EventsRoute() {
   return <OrganizerGate page="events" />;
+}
+export function ArchivedEventsRoute() {
+  return <OrganizerGate page="archived-events" />;
 }
 export function CreateEventRoute() {
   return <OrganizerGate page="create-event" />;

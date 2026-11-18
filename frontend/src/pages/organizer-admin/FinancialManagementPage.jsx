@@ -8,6 +8,7 @@ function money(amount, currency = "GHS") {
   );
 }
 
+import { SnackbarNotice } from "../../components/SnackbarProvider.jsx";
 export function FinancialManagementPage({ session }) {
   const [data, setData] = useState(null);
   const [withdrawalData, setWithdrawalData] = useState({
@@ -223,7 +224,7 @@ export function FinancialManagementPage({ session }) {
       title="Financial management"
       description="Reconcile verified revenue, event fees, wallet entitlement, and Paystack transfers."
     >
-      {state.error && <div className="admin-alert">{state.error}</div>}
+      <SnackbarNotice message={state.error} />
       <section
         className="payment-summary payment-summary-card financial-summary"
         aria-labelledby="financial-summary-title"
@@ -369,14 +370,7 @@ export function FinancialManagementPage({ session }) {
             {accountResolving ? "Verifying..." : "Verify destination"}
           </button>
         )}
-        {verifyFeedback && (
-          <div
-            className={`admin-inline-feedback ${verifyFeedback.type}`}
-            role={verifyFeedback.type === "error" ? "alert" : "status"}
-          >
-            {verifyFeedback.message}
-          </div>
-        )}
+        <SnackbarNotice message={verifyFeedback?.message} type={verifyFeedback?.type} />
         <label>
           {recipientType === "mobile_money"
             ? "Registered mobile-money name"
@@ -411,14 +405,7 @@ export function FinancialManagementPage({ session }) {
         >
           Make withdrawal
         </button>
-        {withdrawalFeedback && (
-          <div
-            className={`admin-inline-feedback ${withdrawalFeedback.type}`}
-            role={withdrawalFeedback.type === "error" ? "alert" : "status"}
-          >
-            {withdrawalFeedback.message}
-          </div>
-        )}
+        <SnackbarNotice message={withdrawalFeedback?.message} type={withdrawalFeedback?.type} />
       </form>
       <div className="section-heading">
         <div>
@@ -426,14 +413,7 @@ export function FinancialManagementPage({ session }) {
           <h2>Withdrawals</h2>
         </div>
       </div>
-      {actionFeedback && (
-        <div
-          className={`admin-inline-feedback ${actionFeedback.type}`}
-          role={actionFeedback.type === "error" ? "alert" : "status"}
-        >
-          {actionFeedback.message}
-        </div>
-      )}
+      <SnackbarNotice message={actionFeedback?.message} type={actionFeedback?.type} />
       {withdrawalData.items.length ? (
         <div className="candidate-table-wrap">
           <table className="admin-table">

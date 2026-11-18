@@ -2685,23 +2685,6 @@ h3 {
 .vote-contact label {
   margin: 0;
 }
-.vote-error {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 16px;
-  padding: 11px 12px;
-  border: 1px solid var(--color-error-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-error-dark);
-  background: var(--color-error-container);
-  font-size: 10px;
-  line-height: 1.45;
-}
-.vote-error svg {
-  width: 16px;
-  flex: none;
-}
 .vote-dialog form > footer {
   min-height: 70px;
   display: flex;
@@ -4545,6 +4528,78 @@ h3 {
   background: var(--color-error-container);
   font-size: 11px;
 }
+.snackbar-stack {
+  position: fixed;
+  z-index: 3000;
+  right: 20px;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  width: min(420px, calc(100vw - 32px));
+  display: grid;
+  gap: 10px;
+  pointer-events: none;
+}
+.snackbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 12px 13px 15px;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+  font-size: 13px;
+  line-height: 1.45;
+  pointer-events: auto;
+}
+.snackbar.error > svg {
+  color: var(--color-error-dark);
+}
+.snackbar.success > svg {
+  color: var(--color-primary);
+}
+.snackbar > svg {
+  width: 19px;
+  height: 19px;
+  flex: none;
+}
+.snackbar > span {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.snackbar button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  flex: none;
+  place-items: center;
+  margin: -5px -4px -5px 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+.snackbar button:hover,
+.snackbar button:focus-visible {
+  color: var(--color-primary);
+  background: var(--color-surface-container);
+}
+.snackbar button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.snackbar button svg {
+  width: 16px;
+  height: 16px;
+}
+@media (max-width: 600px) {
+  .snackbar-stack {
+    right: 16px;
+    bottom: max(16px, env(safe-area-inset-bottom));
+  }
+}
 .admin-loading {
   min-height: 100vh;
   display: flex;
@@ -4780,6 +4835,24 @@ h3 {
   gap: 9px;
   padding-top: 5px;
 }
+.archive-confirmation {
+  display: grid;
+  gap: 12px;
+  padding: 24px;
+}
+.archive-confirmation-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  color: var(--color-error-dark);
+  background: var(--color-error-container);
+}
+.archive-confirmation-icon svg { width: 22px; height: 22px; }
+.archive-confirmation p { margin: 0; color: var(--ink); }
+.archive-confirmation-detail { color: var(--muted) !important; }
+.archive-confirmation .dialog-actions { margin-top: 12px; flex-wrap: wrap; }
 .organizer-login {
   min-height: 100vh;
   display: grid;
@@ -5419,19 +5492,6 @@ h3 {
   .organizer-login form {
     padding: 45px 0 70px;
   }
-}
-.admin-inline-feedback {
-  padding: 10px 12px;
-  border: 1px solid var(--color-success-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-on-primary-fixed);
-  background: var(--color-success-container);
-  font-size: 11px;
-}
-.admin-inline-feedback.error {
-  border-color: var(--color-error-border);
-  color: var(--color-error-dark);
-  background: var(--color-error-container);
 }
 .financial-paystack-balance {
   display: flex;

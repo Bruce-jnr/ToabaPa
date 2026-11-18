@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  AlertCircle,
   ArrowRight,
   CheckCircle2,
   CreditCard,
@@ -8,6 +7,7 @@ import {
   X,
 } from "lucide-react";
 import { useFocusTrap } from "../../lib/useFocusTrap.js";
+import { SnackbarNotice } from "../SnackbarProvider.jsx";
 
 export function VoteDialog({ candidate, event, onClose }) {
   const [voteInput, setVoteInput] = useState("");
@@ -170,12 +170,7 @@ export function VoteDialog({ candidate, event, onClose }) {
                 />
               </label>
             </div>
-            {state.error && (
-              <div className="vote-error">
-                <AlertCircle />
-                {state.error}
-              </div>
-            )}
+            <SnackbarNotice message={state.error} />
             <footer>
               <div>
                 <small>Estimated total</small>
@@ -234,12 +229,7 @@ export function VoteDialog({ candidate, event, onClose }) {
             <p>
               Votes are credited only after the payment is securely confirmed.
             </p>
-            {state.error && (
-              <div className="vote-error">
-                <AlertCircle />
-                {state.error}
-              </div>
-            )}
+            <SnackbarNotice message={state.error} />
             <div className="review-actions">
               <button
                 className="secondary-action"

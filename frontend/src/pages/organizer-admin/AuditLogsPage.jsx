@@ -34,6 +34,7 @@ function AuditValues({ title, value }) {
   );
 }
 
+import { SnackbarNotice } from "../../components/SnackbarProvider.jsx";
 export function AuditLogsPage({ session }) {
   const [search, setSearch] = useState("");
   const [action, setAction] = useState("");
@@ -137,7 +138,7 @@ export function AuditLogsPage({ session }) {
           </div>
         </label>
       </div>
-      {state.error && <div className="admin-alert">{state.error}</div>}
+      <SnackbarNotice message={state.error} />
       {state.loading ? (
         <AdminLoading />
       ) : data.items.length ? (

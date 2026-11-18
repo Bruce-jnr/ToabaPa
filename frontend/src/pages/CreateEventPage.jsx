@@ -66,8 +66,9 @@ function FieldError({ children }) {
   ) : null;
 }
 
-export default function CreateEventPage() {
+export default function CreateEventPage({ session }) {
   const navigate = useNavigate();
+  const isSuperAdmin = session.globalRole === 'SUPER_ADMIN';
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState(loadDraft);
   const [errors, setErrors] = useState({});
@@ -123,7 +124,7 @@ export default function CreateEventPage() {
     if (step === 2) {
       if (Number(draft.votePrice) <= 0)
         nextErrors.votePrice = 'Vote price must be greater than zero.';
-      if (draft.platformFeePercent === '' || Number(draft.platformFeePercent) < 0 || Number(draft.platformFeePercent) > 100)
+      if (isSuperAdmin && (draft.platformFeePercent === '' || Number(draft.platformFeePercent) < 0 || Number(draft.platformFeePercent) > 100))
         nextErrors.platformFeePercent = 'Enter a platform fee from 0 to 100 percent.';
       if (
         !Number.isInteger(Number(draft.minimumVotes)) ||
@@ -186,7 +187,7 @@ export default function CreateEventPage() {
           timezone: draft.timezone,
           currency: draft.currency,
           defaultVotePrice: Math.round(Number(draft.votePrice) * 100),
-          platformFeeBps: Math.round(Number(draft.platformFeePercent) * 100),
+          ...(isSuperAdmin ? { platformFeeBps: Math.round(Number(draft.platformFeePercent) * 100) } : {}),
           minimumVotes: Number(draft.minimumVotes),
           webVotingEnabled: draft.webVotingEnabled,
           ussdVotingEnabled: draft.ussdVotingEnabled,
@@ -560,11 +561,11 @@ export default function CreateEventPage() {
                   />
                   <FieldError>{errors.minimumVotes}</FieldError>
                 </div>
-                <div className="field-group">
+                {isSuperAdmin && <div className="field-group">
                   <label htmlFor="platform-fee">Platform fee (%)</label>
                   <input id="platform-fee" type="number" min="0" max="100" step="0.01" value={draft.platformFeePercent} onChange={(event) => update('platformFeePercent', event.target.value)} placeholder="Set for this event" />
                   <FieldError>{errors.platformFeePercent}</FieldError>
-                </div>
+                </div>}
               </div>
               <fieldset className="channel-options">
                 <legend>Voting channels</legend>
@@ -665,7 +666,7 @@ export default function CreateEventPage() {
                   label="Minimum votes"
                   value={`${draft.minimumVotes} vote${Number(draft.minimumVotes) === 1 ? '' : 's'}`}
                 />
-                <ReviewItem icon={ReceiptText} label="Platform fee" value={`${Number(draft.platformFeePercent || 0).toFixed(2)}%`} />
+                {isSuperAdmin && <ReviewItem icon={ReceiptText} label="Platform fee" value={`${Number(draft.platformFeePercent || 0).toFixed(2)}%`} />}
                 <ReviewItem
                   icon={Settings2}
                   label="Channels"

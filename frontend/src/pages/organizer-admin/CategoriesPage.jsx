@@ -18,6 +18,7 @@ import {
 } from "./AdminShell.jsx";
 import { api } from "./adminApi.js";
 import { useOrganizerContext } from "./useOrganizerContext.js";
+import { SnackbarNotice } from "../../components/SnackbarProvider.jsx";
 export function CategoriesPage({ session }) {
   const context = useOrganizerContext();
   const [params, setParams] = useSearchParams();
@@ -97,7 +98,7 @@ export function CategoriesPage({ session }) {
         </label>
         <span>{items.length} categories</span>
       </div>
-      {error && <div className="admin-alert">{error}</div>}
+      <SnackbarNotice message={error} />
       {loading ? (
         <AdminLoading type="cards" />
       ) : items.length ? (
@@ -413,7 +414,7 @@ function CategoryForm({ events, item, initialEventId, onClose, onCreated }) {
             placeholder="Use event price"
           />
         </label>
-        {error && <div className="admin-form-error">{error}</div>}
+        <SnackbarNotice message={error} />
         <div className="dialog-actions">
           <button className="secondary-action" type="button" onClick={onClose}>
             Cancel

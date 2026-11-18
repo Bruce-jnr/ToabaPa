@@ -12,6 +12,7 @@ import {
   Pencil,
   PlayCircle,
   Plus,
+  RotateCcw,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "./adminApi.js";
@@ -22,6 +23,7 @@ import {
   AdminEmpty,
 } from "./AdminShell.jsx";
 
+import { SnackbarNotice } from "../../components/SnackbarProvider.jsx";
 export function DashboardOverview({ session }) {
   const [state, setState] = useState({ events: [], loading: true, error: "" });
   useEffect(() => {
@@ -65,7 +67,7 @@ export function DashboardOverview({ session }) {
         </Link>
       }
     >
-      {state.error && <div className="admin-alert">{state.error}</div>}
+      <SnackbarNotice message={state.error} />
       {state.loading ? (
         <AdminLoading type="cards" />
       ) : (
@@ -141,6 +143,9 @@ export function EventsManagementPage({ session }) {
     pendingId: "",
   });
   const [editing, setEditing] = useState(null);
+  const [archiveTarget, setArchiveTarget] = useState(null);
+  const [archiveMessage, setArchiveMessage] = useState("");
+  const [saveMessage, setSaveMessage] = useState("");
   const loadEvents = useCallback(() => {
     api("/api/v1/organizer/context")
       .then((data) =>
@@ -189,15 +194,11 @@ export function EventsManagementPage({ session }) {
   }
 
   async function archiveEvent(event) {
-    if (
-      !window.confirm(
-        `Archive ${event.name}? It will no longer appear publicly.`,
-      )
-    )
-      return;
     setState((current) => ({ ...current, pendingId: event.id, error: "" }));
     try {
       await api(`/api/v1/organizer/events/${event.id}`, { method: "DELETE" });
+      setArchiveTarget(null);
+      setArchiveMessage(`${event.name} was archived.`);
       setState((current) => ({
         ...current,
         pendingId: "",
@@ -223,7 +224,9 @@ export function EventsManagementPage({ session }) {
         </Link>
       }
     >
-      {state.error && <div className="admin-alert">{state.error}</div>}
+      <SnackbarNotice message={state.error} />
+      <SnackbarNotice message={saveMessage} type="success" />
+      <SnackbarNotice message={archiveMessage} type="success" />
       {state.loading ? (
         <AdminLoading type="cards" />
       ) : state.events.length ? (
@@ -269,7 +272,10 @@ export function EventsManagementPage({ session }) {
                     className="icon-action"
                     type="button"
                     title="Edit event details"
-                    onClick={() => setEditing(event)}
+                    onClick={() => {
+                      setSaveMessage("");
+                      setEditing(event);
+                    }}
                   >
                     <Pencil />
                   </button>
@@ -303,7 +309,10 @@ export function EventsManagementPage({ session }) {
                     disabled={
                       state.pendingId === event.id || event.status === "ACTIVE"
                     }
-                    onClick={() => archiveEvent(event)}
+                    onClick={() => {
+                      setArchiveMessage("");
+                      setArchiveTarget(event);
+                    }}
                   >
                     <Archive />
                   </button>
@@ -322,13 +331,101 @@ export function EventsManagementPage({ session }) {
       {editing && (
         <EventEditForm
           event={editing}
+          isSuperAdmin={session.globalRole === "SUPER_ADMIN"}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
+            setSaveMessage("Event saved successfully.");
             loadEvents();
           }}
         />
       )}
+      {archiveTarget && (
+        <Dialog
+          title="Archive event"
+          onClose={() => {
+            if (state.pendingId !== archiveTarget.id) setArchiveTarget(null);
+          }}
+        >
+          <div className="archive-confirmation">
+            <div className="archive-confirmation-icon"><Archive aria-hidden="true" /></div>
+            <p>Archive <strong>{archiveTarget.name}</strong>?</p>
+            <p className="archive-confirmation-detail">This event will no longer appear publicly.</p>
+            <div className="dialog-actions">
+              <button className="secondary-action" type="button" disabled={state.pendingId === archiveTarget.id} onClick={() => setArchiveTarget(null)}>Keep event</button>
+              <button className="suspend-action" type="button" disabled={state.pendingId === archiveTarget.id} onClick={() => archiveEvent(archiveTarget)}>
+                {state.pendingId === archiveTarget.id ? <LoaderCircle className="spin" aria-hidden="true" /> : <Archive aria-hidden="true" />}
+                {state.pendingId === archiveTarget.id ? "Archiving…" : "Archive event"}
+              </button>
+            </div>
+          </div>
+        </Dialog>
+      )}
+    </AdminLayout>
+  );
+}
+
+export function ArchivedEventsPage({ session }) {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [pendingId, setPendingId] = useState("");
+
+  useEffect(() => {
+    api("/api/v1/organizer/events/archived")
+      .then((data) => setEvents(data))
+      .catch((failure) => setError(failure.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function restore(event) {
+    setPendingId(event.id);
+    setError("");
+    setMessage("");
+    try {
+      const restored = await api(`/api/v1/organizer/events/${event.id}/restore`, { method: "PATCH" });
+      setEvents((current) => current.filter((item) => item.id !== event.id));
+      setMessage(`${restored.name} was restored${restored.status === "PAUSED" ? " with voting paused" : ""}.`);
+    } catch (failure) {
+      setError(failure.message);
+    } finally {
+      setPendingId("");
+    }
+  }
+
+  return (
+    <AdminLayout
+      session={session}
+      title="Archived events"
+      description="Restore an event to make it available again. Voting stays paused for events in progress."
+      action={<Link className="secondary-action" to="/dashboard/events">View events</Link>}
+    >
+      <SnackbarNotice message={error} />
+      <SnackbarNotice message={message} type="success" />
+      {loading ? <AdminLoading type="cards" /> : events.length ? (
+        <div className="management-grid event-card-grid">
+          {events.map((event) => (
+            <article className="management-card admin-event-card" key={event.id}>
+              <div className="admin-event-banner">
+                {event.bannerUrl ? <img src={event.bannerUrl} alt="" loading="lazy" decoding="async" /> : <CalendarDays aria-hidden="true" />}
+                <span className="event-state">Archived</span>
+              </div>
+              <div className="admin-event-content">
+                <span>{new Date(event.startAt).toLocaleDateString()} - {new Date(event.endAt).toLocaleDateString()}</span>
+                <h2>{event.name}</h2>
+                <p>{event.description || "No event description added."}</p>
+              </div>
+              <footer className="admin-event-actions">
+                <button className="primary-action" type="button" disabled={pendingId === event.id} onClick={() => restore(event)}>
+                  {pendingId === event.id ? <LoaderCircle className="spin" aria-hidden="true" /> : <RotateCcw aria-hidden="true" />}
+                  {pendingId === event.id ? "Restoring…" : "Restore event"}
+                </button>
+              </footer>
+            </article>
+          ))}
+        </div>
+      ) : <AdminEmpty icon={Archive} title="No archived events" text="Events you archive will appear here." />}
     </AdminLayout>
   );
 }
@@ -644,7 +741,7 @@ function MfaPanel({ enabledInitially, hasPhone }) {
   );
 }
 
-function EventEditForm({ event, onClose, onSaved }) {
+function EventEditForm({ event, isSuperAdmin, onClose, onSaved }) {
   const datePart = (value) => new Date(value).toISOString().slice(0, 16);
   const [form, setForm] = useState({
     name: event.name,
@@ -702,7 +799,7 @@ function EventEditForm({ event, onClose, onSaved }) {
         body: JSON.stringify({
           ...form,
           platformFeePercent: undefined,
-          platformFeeBps: Math.round(Number(form.platformFeePercent) * 100),
+          ...(isSuperAdmin ? { platformFeeBps: Math.round(Number(form.platformFeePercent) * 100) } : {}),
           startAt: new Date(form.startAt).toISOString(),
           endAt: new Date(form.endAt).toISOString(),
           defaultVotePrice: Math.round(Number(form.defaultVotePrice) * 100),
@@ -803,7 +900,7 @@ function EventEditForm({ event, onClose, onSaved }) {
             />
           </label>
         </div>
-        <label>
+        {isSuperAdmin && <label>
           Platform fee (%)
           <input
             type="number"
@@ -816,7 +913,7 @@ function EventEditForm({ event, onClose, onSaved }) {
             }
             required
           />
-        </label>
+        </label>}
         <label>
           Minimum votes
           <input
@@ -869,7 +966,7 @@ function EventEditForm({ event, onClose, onSaved }) {
             ))}
           </select>
         </label>
-        {error && <div className="admin-form-error">{error}</div>}
+        <SnackbarNotice message={error} />
         <div className="dialog-actions">
           <button className="secondary-action" type="button" onClick={onClose}>
             Cancel
