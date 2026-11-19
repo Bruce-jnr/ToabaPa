@@ -8,14 +8,16 @@ Commit the application and this guide. Do not commit `.env`. Push the branch you
 
 Set each service's build and start commands in its Railway settings ([build and start commands](https://docs.railway.com/builds/build-and-start-commands)):
 
-| Service | Build command | Start command | Healthcheck path |
-| --- | --- | --- | --- |
-| App + API | `npm run db:generate && npm run build:api && npm run build` | `npm run start:api` | `/api/health/ready` |
-| Marketing | `npm run build:marketing` | `node frontend/serve-static.mjs` | `/` |
+| Service | Build command | Pre-deploy command | Start command | Healthcheck path |
+| --- | --- | --- | --- | --- |
+| App + API | `npm run db:generate && npm run build:api && npm run build` | `npm run db:deploy` | `npm run start:api` | `/api/health/ready` |
+| Marketing | `npm run build:marketing` | None | `node frontend/serve-static.mjs` | `/` |
 
 The app build is served by Express in production. Its SPA fallback handles direct visits to app routes while `/api/*` stays with the API. The marketing server serves `dist-marketing` and supports direct visits to its routes.
 
 ## 2. Set environment variables
+
+**Railway build requirement:** Add the `VITE_*` variables to the same Railway service that runs each Vite build, before triggering deployment. In particular, the **App + API** service must have `VITE_APP_URL`, `VITE_MARKETING_URL`, and `VITE_API_URL`. Railway does not read your local `.env`, and variables configured only on the Marketing service are not available to the App + API build. After saving variables, redeploy the service from the Railway dashboard. If the build still says a variable is missing, check the selected Railway environment and service, and make sure the variable is available during the build rather than only at runtime.
 
 On **App + API**, set these values. Use Railway's variable picker for the PostgreSQL reference; replace `Postgres` below if you named that service differently ([PostgreSQL service](https://docs.railway.com/databases/postgresql)).
 
@@ -51,7 +53,9 @@ Railway supplies the marketing service's `PORT`; `frontend/serve-static.mjs` rea
 
 ## 3. Run database migrations
 
-Before the first App + API release, run `npm run db:deploy` against the Railway PostgreSQL database from a one-off Railway job/shell with the same `DATABASE_URL`. Repeat it for later schema changes before releasing dependent code. Do not put migrations in the start command: application restarts should only start the application. Prisma recommends `migrate deploy` in production ([Prisma deployment guide](https://docs.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate)).
+In the **App + API** service, open **Settings → Deploy → Pre-deploy Command** and enter `npm run db:deploy`. Save the setting and redeploy. Railway runs this command after building and before starting the new application, with the service's variables and private database access. A failed migration stops the deployment ([Railway pre-deploy documentation](https://docs.railway.com/deployments/pre-deploy-command)). Prisma's script applies the committed migrations to the database selected by `DATABASE_URL` ([Prisma deployment guide](https://docs.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate)).
+
+If the running service reports `The table public.AuditLog does not exist` or similar errors for `Payment`, `AuthSession`, or `AlertOutbox`, the connected database has not received the migrations. Confirm `DATABASE_URL` references the intended PostgreSQL service and schema, then check the **pre-deploy logs** for migration success before restarting the app. Do not use `prisma db push` or seed data to work around a failed migration. The existing application may continue producing worker errors until the migrated deployment becomes active.
 
 Do **not** run `npm run db:seed` in production; it inserts demo data and a demo paid vote. For an empty database, use the one-time superadmin bootstrap in [VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md#one-time-superadmin-bootstrap-for-an-empty-database) in a secure environment that can reach the Railway database. For an existing database, preserve its real superadmin account and back up the data before migration.
 
