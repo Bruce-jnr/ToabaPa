@@ -31,11 +31,14 @@ publicRouter.get('/events', async (req, res, next) => {
           ? { OR: [{ status: EventStatus.SCHEDULED }, { startAt: { gt: now } }] }
           : query.status === 'ended'
             ? { OR: [{ status: EventStatus.ENDED }, { endAt: { lte: now } }] }
-            : { status: { in: [EventStatus.ACTIVE, EventStatus.PAUSED, EventStatus.SCHEDULED, EventStatus.ENDED] } };
+            : {};
 
     const events = await prisma.event.findMany({
       where: {
-        ...statusWhere,
+        AND: [
+          { status: { in: [EventStatus.ACTIVE, EventStatus.PAUSED, EventStatus.SCHEDULED, EventStatus.ENDED] } },
+          statusWhere,
+        ],
         ...(query.search
           ? {
               OR: [
