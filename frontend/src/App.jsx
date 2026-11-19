@@ -10,6 +10,7 @@ const EventDetailPage = lazyNamed(
   () => import("./pages/public/EventDetailPage.jsx"),
   "EventDetailPage",
 );
+const DemoEventPage = lazyNamed(() => import('./pages/public/DemoEventPage.jsx'), 'DemoEventPage');
 const PaymentVerifyPage = lazyNamed(
   () => import("./pages/public/PaymentVerifyPage.jsx"),
   "PaymentVerifyPage",
@@ -46,6 +47,8 @@ function App() {
           <Route path="/login" element={<LoginRoute />} />
           <Route path="/events/:slug" element={<EventDetailPage />} />
           <Route path="/events/:slug/categories/:categorySlug" element={<EventDetailPage />} />
+          <Route path="/demo/events/:slug" element={<DemoEventPage />} />
+          <Route path="/demo/events/:slug/categories/:categorySlug" element={<DemoEventPage />} />
           <Route path="/payment/verify" element={<PaymentVerifyPage />} />
           <Route path="/organizers" element={<Navigate to="/login" replace />} />
           <Route path="/superadmin/login" element={<Navigate to="/login" replace />} />

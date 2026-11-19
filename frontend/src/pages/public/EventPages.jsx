@@ -2,8 +2,15 @@ import { useMemo } from 'react';
 import { ArrowRight, Search, ShieldCheck, Vote } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { PublicShell as Shell } from '../../components/layout/PublicShell.jsx';
-import { ErrorState, EventCard, LoadingCards, ScrollReveal, SearchForm } from '../../components/public/EventUi.jsx';
+import {
+  ErrorState,
+  EventCard,
+  LoadingCards,
+  ScrollReveal,
+  SearchForm,
+} from '../../components/public/EventUi.jsx';
 import { usePublicData } from '../../lib/publicApi.js';
+import { demoEvents, filterDemoEvents } from '../../lib/demoEvents.js';
 
 export function HomePage() {
   const events = usePublicData('/api/v1/public/events?status=live');
@@ -19,26 +26,41 @@ export function HomePage() {
           </p>
           <SearchForm />
         </ScrollReveal>
-        <ScrollReveal className="hero-art reveal-scale" delay={100} aria-label="Toabapa voting interface preview">
+        <ScrollReveal
+          className="hero-art reveal-scale"
+          delay={100}
+          aria-label="Toabapa voting interface preview"
+        >
           <div className="vote-preview">
             <div className="vote-preview-head">
-              <span className="preview-icon"><Vote /></span>
-              <span className="status-badge live"><span />Live voting</span>
+              <span className="preview-icon">
+                <Vote />
+              </span>
+              <span className="status-badge live">
+                <span />
+                Live voting
+              </span>
             </div>
             <div className="vote-preview-copy">
               <span>Candidate selected</span>
               <strong>Choose your votes</strong>
             </div>
             <div className="vote-quantity" aria-hidden="true">
-              <span>−</span><strong>5</strong><span>+</span>
+              <span>−</span>
+              <strong>5</strong>
+              <span>+</span>
             </div>
             <div className="vote-preview-total">
               <span>Payment total</span>
               <strong>GHS 5.00</strong>
             </div>
-            <div className="preview-action">Continue securely <ArrowRight /></div>
+            <div className="preview-action">
+              Continue securely <ArrowRight />
+            </div>
           </div>
-          <div className="verified-float"><ShieldCheck /> Payment verified</div>
+          <div className="verified-float">
+            <ShieldCheck /> Payment verified
+          </div>
         </ScrollReveal>
       </section>
       <section className="content-section">
@@ -69,6 +91,28 @@ export function HomePage() {
             <span>Check back soon for new competitions.</span>
           </div>
         )}
+      </section>
+      <section className="content-section demo-showcase-section">
+        <ScrollReveal className="section-heading">
+          <div>
+            <span className="eyebrow">Explore the ended Events</span>
+            <h2>Sample ended events</h2>
+            <p>
+              Illustrative examples only. No voting or results might be hidden
+              by the program organizer.
+            </p>
+          </div>
+          <Link to="/events?status=ended">
+            See all examples <ArrowRight />
+          </Link>
+        </ScrollReveal>
+        <div className="event-grid">
+          {demoEvents.slice(0, 3).map((event, index) => (
+            <ScrollReveal key={event.id} delay={index * 80}>
+              <EventCard event={event} />
+            </ScrollReveal>
+          ))}
+        </div>
       </section>
       <section className="how-section">
         <ScrollReveal>
@@ -165,6 +209,8 @@ export function ExplorePage() {
     [status, search],
   );
   const events = usePublicData(path);
+  const examples = filterDemoEvents(status, search);
+  const displayedEvents = [...events.data, ...examples];
   function changeStatus(next) {
     const updated = new URLSearchParams(params);
     if (next === 'all') updated.delete('status');
@@ -213,21 +259,24 @@ export function ExplorePage() {
                 : `${status} events`}
           </h2>
           <span>
-            {events.loading ? 'Loading' : `${events.data.length} found`}
+            {events.loading ? 'Loading' : `${displayedEvents.length} found`}
           </span>
         </ScrollReveal>
         {events.loading ? (
           <LoadingCards />
+        ) : displayedEvents.length ? (
+          <>
+            {events.error && <ErrorState message={events.error} />}
+            <div className="event-grid explore-grid">
+              {displayedEvents.map((event, index) => (
+                <ScrollReveal key={event.id} delay={(index % 3) * 80}>
+                  <EventCard event={event} />
+                </ScrollReveal>
+              ))}
+            </div>
+          </>
         ) : events.error ? (
           <ErrorState message={events.error} />
-        ) : events.data.length ? (
-          <div className="event-grid explore-grid">
-            {events.data.map((event, index) => (
-              <ScrollReveal key={event.id} delay={(index % 3) * 80}>
-                <EventCard event={event} />
-              </ScrollReveal>
-            ))}
-          </div>
         ) : (
           <div className="message-state">
             <Search />
@@ -239,5 +288,3 @@ export function ExplorePage() {
     </Shell>
   );
 }
-
-

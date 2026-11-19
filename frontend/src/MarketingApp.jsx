@@ -5,6 +5,7 @@ import { appHref } from './lib/siteUrls.js';
 
 const HomePage = lazy(() => import('./pages/public/EventPages.jsx').then((module) => ({ default: module.HomePage })));
 const ExplorePage = lazy(() => import('./pages/public/EventPages.jsx').then((module) => ({ default: module.ExplorePage })));
+const DemoEventPage = lazy(() => import('./pages/public/DemoEventPage.jsx').then((module) => ({ default: module.DemoEventPage })));
 const HowItWorksPage = lazy(() => import('./pages/public/HowItWorksPage.jsx').then((module) => ({ default: module.HowItWorksPage })));
 const ContactPage = lazy(() => import('./pages/public/LegalPages.jsx').then((module) => ({ default: module.ContactPage })));
 const PrivacyPage = lazy(() => import('./pages/public/LegalPages.jsx').then((module) => ({ default: module.PrivacyPage })));
@@ -26,6 +27,8 @@ export default function MarketingApp() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/events" element={<ExplorePage />} />
+          <Route path="/demo/events/:slug" element={<DemoEventPage />} />
+          <Route path="/demo/events/:slug/categories/:categorySlug" element={<DemoEventPage />} />
           <Route path="/events/:slug/*" element={<AppRedirect />} />
           <Route path="/organizers/*" element={<AppRedirect login />} />
           <Route path="/superadmin/login" element={<AppRedirect login />} />

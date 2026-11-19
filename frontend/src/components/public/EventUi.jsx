@@ -67,8 +67,8 @@ export function EventCard({ event, featured = false }) {
   return (
     <Link
       className={`event-card ${featured ? "featured" : ""}`}
-      to={eventHref(event.slug)}
-      aria-label={`Explore ${event.name}`}
+      to={event.isDemo ? `/demo/events/${event.slug}` : eventHref(event.slug)}
+      aria-label={`Explore ${event.isDemo ? 'demo ' : ''}${event.name}`}
     >
       <div className="event-image">
         {event.bannerUrl && (
@@ -87,17 +87,17 @@ export function EventCard({ event, featured = false }) {
         <div className="event-meta">
           <span>
             <Users />
-            {event._count.candidates} candidates
+            {event.isDemo ? `${event.categories.length} sample categories` : `${event._count.candidates} candidates`}
           </span>
           <span>
             <CalendarDays />
-            {event.publicStatus === "live"
+            {event.isDemo ? 'Illustrative event' : event.publicStatus === "live"
               ? `Ends ${formatDate(event.endAt)}`
               : formatDate(event.startAt)}
           </span>
         </div>
         <span className="event-link">
-          {event.publicStatus === "ended" ? "View results" : "Explore event"}
+          {event.isDemo ? 'Explore events' : event.publicStatus === "ended" ? "View results" : "Explore event"}
           <ChevronRight />
         </span>
       </div>
