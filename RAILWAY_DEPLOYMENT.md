@@ -54,12 +54,18 @@ Railway supplies the marketing service's `PORT`; `frontend/serve-static.mjs` rea
 ## 3. Run database migrations
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 The App + API service runs `npm run db:deploy` as its pre-deploy command (`railway.json`), so pending migrations are applied before each release; the start command only starts the app. Prisma recommends `migrate deploy` in production ([Prisma deployment guide](https://docs.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate)).
 =======
 In the **App + API** service, open **Settings → Deploy → Pre-deploy Command** and enter `npm run db:deploy`. Save the setting and redeploy. Railway runs this command after building and before starting the new application, with the service's variables and private database access. A failed migration stops the deployment ([Railway pre-deploy documentation](https://docs.railway.com/deployments/pre-deploy-command)). Prisma's script applies the committed migrations to the database selected by `DATABASE_URL` ([Prisma deployment guide](https://docs.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate)).
 
 If the running service reports `The table public.AuditLog does not exist` or similar errors for `Payment`, `AuthSession`, or `AlertOutbox`, the connected database has not received the migrations. Confirm `DATABASE_URL` references the intended PostgreSQL service and schema, then check the **pre-deploy logs** for migration success before restarting the app. Do not use `prisma db push` or seed data to work around a failed migration. The existing application may continue producing worker errors until the migrated deployment becomes active.
 >>>>>>> 0e23a7f (modified the deployment for railway)
+=======
+In the **App + API** service, open **Settings → Deploy → Pre-deploy Command** and enter `npm run db:deploy`. Save the setting and redeploy. Railway runs this command after building and before starting the new application, with the service's variables and private database access. A failed migration stops the deployment ([Railway pre-deploy documentation](https://docs.railway.com/deployments/pre-deploy-command)). Prisma's script applies the committed migrations to the database selected by `DATABASE_URL` ([Prisma deployment guide](https://docs.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate)).
+
+If the running service reports `The table public.AuditLog does not exist` or similar errors for `Payment`, `AuthSession`, or `AlertOutbox`, the connected database has not received the migrations. Confirm `DATABASE_URL` references the intended PostgreSQL service and schema, then check the **pre-deploy logs** for migration success before restarting the app. Do not use `prisma db push` or seed data to work around a failed migration. The existing application may continue producing worker errors until the migrated deployment becomes active.
+>>>>>>> social
 
 Do **not** run `npm run db:seed` in production; it inserts demo data and a demo paid vote. For an empty database, use the one-time superadmin bootstrap in [VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md#one-time-superadmin-bootstrap-for-an-empty-database) in a secure environment that can reach the Railway database. For an existing database, preserve its real superadmin account and back up the data before migration.
 
