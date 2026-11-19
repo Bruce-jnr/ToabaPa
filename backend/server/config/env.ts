@@ -17,6 +17,8 @@ function secret(name: string): string | undefined {
 
 const normalizedEnv = {
   ...process.env,
+  // Railway injects PORT; use it when API_PORT is not set explicitly.
+  API_PORT: process.env.API_PORT ?? process.env.PORT,
   DATABASE_URL: secret("DATABASE_URL"),
   SESSION_SECRET: secret("SESSION_SECRET"),
   PAYSTACK_PUBLIC_KEY: secret("PAYSTACK_PUBLIC_KEY"),

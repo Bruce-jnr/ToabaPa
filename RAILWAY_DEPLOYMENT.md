@@ -51,7 +51,7 @@ Railway supplies the marketing service's `PORT`; `frontend/serve-static.mjs` rea
 
 ## 3. Run database migrations
 
-Before the first App + API release, run `npm run db:deploy` against the Railway PostgreSQL database from a one-off Railway job/shell with the same `DATABASE_URL`. Repeat it for later schema changes before releasing dependent code. Do not put migrations in the start command: application restarts should only start the application. Prisma recommends `migrate deploy` in production ([Prisma deployment guide](https://docs.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate)).
+The App + API service runs `npm run db:deploy` as its pre-deploy command (`railway.json`), so pending migrations are applied before each release; the start command only starts the app. Prisma recommends `migrate deploy` in production ([Prisma deployment guide](https://docs.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate)).
 
 Do **not** run `npm run db:seed` in production; it inserts demo data and a demo paid vote. For an empty database, use the one-time superadmin bootstrap in [VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md#one-time-superadmin-bootstrap-for-an-empty-database) in a secure environment that can reach the Railway database. For an existing database, preserve its real superadmin account and back up the data before migration.
 
