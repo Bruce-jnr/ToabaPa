@@ -18,6 +18,7 @@ import {
 import logo from "../../assets/logo.png";
 import { useFocusTrap } from "../../lib/useFocusTrap.js";
 import { api } from "./adminApi.js";
+import { marketingHref } from "../../lib/siteUrls.js";
 
 function DashboardNavigation({ session, onNavigate }) {
   return (
@@ -68,11 +69,7 @@ export function AdminLayout({ session, title, description, action, children }) {
   });
   async function logout() {
     await api("/api/v1/auth/logout", { method: "POST" });
-    navigate(
-      session.globalRole === "SUPER_ADMIN"
-        ? "/superadmin/login"
-        : "/organizers/login",
-    );
+    navigate("/login");
   }
 
   return (
@@ -81,7 +78,7 @@ export function AdminLayout({ session, title, description, action, children }) {
         Skip to dashboard content
       </a>
       <aside className="admin-sidebar">
-        <Link className="admin-brand" to="/">
+        <Link className="admin-brand" to={marketingHref('/')}>
           <img src={logo} alt="Toabapa" />
         </Link>
         <DashboardNavigation session={session} />
@@ -146,7 +143,7 @@ export function AdminLayout({ session, title, description, action, children }) {
           >
             <header>
               <Link
-                to="/"
+                to={marketingHref('/')}
                 aria-label="Toabapa home"
                 onClick={() => setMenuOpen(false)}
               >

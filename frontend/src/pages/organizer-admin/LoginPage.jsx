@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom';
 import { SnackbarNotice } from '../../components/SnackbarProvider.jsx';
 import logo from '../../assets/logo.png';
 import { api } from './adminApi.js';
-export function LoginPage({ onLogin, portal = 'administrator' }) {
+import { marketingHref } from '../../lib/siteUrls.js';
+export function LoginPage({ onLogin }) {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [identifier, setIdentifier] = useState('');
@@ -19,7 +20,7 @@ export function LoginPage({ onLogin, portal = 'administrator' }) {
     try {
       const session = await api('/api/v1/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ identifier, password, portal }),
+        body: JSON.stringify({ identifier, password }),
       });
       if (session.mfaRequired) {
         setChallengeId(session.challengeId);
@@ -37,7 +38,7 @@ export function LoginPage({ onLogin, portal = 'administrator' }) {
     try {
       const session = await api('/api/v1/auth/login/mfa', {
         method: 'POST',
-        body: JSON.stringify({ challengeId, otp, portal }),
+        body: JSON.stringify({ challengeId, otp }),
       });
       await onLogin(session);
     } catch (error) {
@@ -83,7 +84,7 @@ export function LoginPage({ onLogin, portal = 'administrator' }) {
   if (mode === 'mfa')
     return (
       <div className="organizer-login">
-        <Link to="/">
+        <Link to={marketingHref('/')}>
           <img src={logo} alt="Toabapa" />
         </Link>
         <form onSubmit={confirmMfa}>
@@ -136,7 +137,7 @@ export function LoginPage({ onLogin, portal = 'administrator' }) {
   if (mode !== 'login')
     return (
       <div className="organizer-login">
-        <Link to="/">
+        <Link to={marketingHref('/')}>
           <img src={logo} alt="Toabapa" />
         </Link>
         <form onSubmit={mode === 'request' ? requestReset : confirmReset}>
@@ -233,25 +234,16 @@ export function LoginPage({ onLogin, portal = 'administrator' }) {
     );
   return (
     <div className="organizer-login">
-      <Link to="/">
+      <Link to={marketingHref('/')}>
         <img src={logo} alt="Toabapa" />
       </Link>
       <form onSubmit={submit}>
-        <span className="eyebrow">
-          {portal === 'superadmin'
-            ? 'Superadmin console'
-            : 'Organizer login'}
-        </span>
-        <h1>
-          {portal === 'superadmin'
-            ? 'Sign in to manage Toabapa.'
-            : 'Sign in to manage your events.'}
-        </h1>
-        <p>{portal === 'superadmin' ? '' : ''}</p>
+        <span className="eyebrow">Toabapa account</span>
+        <h1>Sign in to manage Toabapa.</h1>
         <label>
-          {portal === 'superadmin' ? 'Email address' : 'Username'}
+          Email or username
           <input
-            type={portal === 'superadmin' ? 'email' : 'text'}
+            type="text"
             autoComplete="username"
             value={identifier}
             onChange={(event) => setIdentifier(event.target.value)}
@@ -287,7 +279,7 @@ export function LoginPage({ onLogin, portal = 'administrator' }) {
         >
           Forgot password?
         </button>
-        <Link className="back-public" to="/">
+        <Link className="back-public" to={marketingHref('/')}>
           Back to home
         </Link>
       </form>

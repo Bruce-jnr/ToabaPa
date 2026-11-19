@@ -1,25 +1,11 @@
-import { lazy, Suspense, useLayoutEffect } from "react";
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { SnackbarProvider } from "./components/SnackbarProvider.jsx";
-
-function ScrollOnNavigation() {
-  const { pathname, search, hash } = useLocation();
-
-  useLayoutEffect(() => {
-    if (!hash) window.scrollTo(0, 0);
-  }, [pathname, search, hash]);
-
-  return null;
-}
+import { ScrollOnNavigation } from './components/ScrollOnNavigation.jsx';
 
 const lazyNamed = (loader, name) =>
   lazy(() => loader().then((module) => ({ default: module[name] })));
 const loadAdmin = () => import("./pages/OrganizerAdminPages.jsx");
-const loadEventPages = () => import("./pages/public/EventPages.jsx");
-const loadLegalPages = () => import("./pages/public/LegalPages.jsx");
-
-const HomePage = lazyNamed(loadEventPages, "HomePage");
-const ExplorePage = lazyNamed(loadEventPages, "ExplorePage");
 const EventDetailPage = lazyNamed(
   () => import("./pages/public/EventDetailPage.jsx"),
   "EventDetailPage",
@@ -28,14 +14,6 @@ const PaymentVerifyPage = lazyNamed(
   () => import("./pages/public/PaymentVerifyPage.jsx"),
   "PaymentVerifyPage",
 );
-const HowItWorksPage = lazyNamed(
-  () => import("./pages/public/HowItWorksPage.jsx"),
-  "HowItWorksPage",
-);
-const ContactPage = lazyNamed(loadLegalPages, "ContactPage");
-const PlaceholderPage = lazyNamed(loadLegalPages, "PlaceholderPage");
-const PrivacyPage = lazyNamed(loadLegalPages, "PrivacyPage");
-const TermsPage = lazyNamed(loadLegalPages, "TermsPage");
 const AdministratorsRoute = lazyNamed(loadAdmin, "AdministratorsRoute");
 const AuditLogsRoute = lazyNamed(loadAdmin, "AuditLogsRoute");
 const CandidatesRoute = lazyNamed(loadAdmin, "CandidatesRoute");
@@ -45,7 +23,7 @@ const DashboardRoute = lazyNamed(loadAdmin, "DashboardRoute");
 const EventsRoute = lazyNamed(loadAdmin, "EventsRoute");
 const ArchivedEventsRoute = lazyNamed(loadAdmin, "ArchivedEventsRoute");
 const FinancialRoute = lazyNamed(loadAdmin, "FinancialRoute");
-const LoginPortalRoute = lazyNamed(loadAdmin, "LoginPortalRoute");
+const LoginRoute = lazyNamed(loadAdmin, "LoginRoute");
 const PaymentsRoute = lazyNamed(loadAdmin, "PaymentsRoute");
 const SettingsRoute = lazyNamed(loadAdmin, "SettingsRoute");
 
@@ -64,25 +42,15 @@ function App() {
       <ScrollOnNavigation />
       <Suspense fallback={<RouteLoading />}>
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/events" element={<ExplorePage />} />
-          <Route path="/how-it-works" element={<HowItWorksPage />} />
+          <Route path="/" element={<LoginRoute />} />
+          <Route path="/login" element={<LoginRoute />} />
           <Route path="/events/:slug" element={<EventDetailPage />} />
           <Route path="/events/:slug/categories/:categorySlug" element={<EventDetailPage />} />
           <Route path="/payment/verify" element={<PaymentVerifyPage />} />
-          <Route path="/organizers" element={<Navigate to="/organizers/login" replace />} />
-          <Route
-            path="/superadmin/login"
-            element={<LoginPortalRoute portal="superadmin" />}
-          />
-          <Route
-            path="/organizers/login"
-            element={<LoginPortalRoute portal="administrator" />}
-          />
-          <Route path="/administrators/login" element={<Navigate to="/organizers/login" replace />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/organizers" element={<Navigate to="/login" replace />} />
+          <Route path="/superadmin/login" element={<Navigate to="/login" replace />} />
+          <Route path="/organizers/login" element={<Navigate to="/login" replace />} />
+          <Route path="/administrators/login" element={<Navigate to="/login" replace />} />
           <Route path="/dashboard" element={<DashboardRoute />} />
           <Route path="/dashboard/events/new" element={<CreateEventRoute />} />
           <Route path="/dashboard/events" element={<EventsRoute />} />
@@ -98,7 +66,7 @@ function App() {
           />
           <Route path="/dashboard/financial" element={<FinancialRoute />} />
           <Route path="/dashboard/transactions" element={<PaymentsRoute />} />
-          <Route path="*" element={<PlaceholderPage />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

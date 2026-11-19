@@ -10,6 +10,7 @@ import {
 import { VoteDialog } from "../../components/voting/VoteDialog.jsx";
 import { formatDate } from "../../lib/format.js";
 import { usePublicData } from "../../lib/publicApi.js";
+import { publicImageUrl } from "../../lib/siteUrls.js";
 
 export function EventDetailPage() {
   const { slug, categorySlug } = useParams();
@@ -47,7 +48,7 @@ export function EventDetailPage() {
         className={`event-detail-hero ${data.bannerUrl ? "has-banner" : ""}`}
         style={
           data.bannerUrl
-            ? { backgroundImage: `url(${data.bannerUrl})` }
+            ? { backgroundImage: `url(${publicImageUrl(data.bannerUrl)})` }
             : undefined
         }
       >
@@ -133,7 +134,7 @@ export function EventDetailPage() {
                     <div className="event-image">
                       {(item.imageUrl || data.bannerUrl) ? (
                         <img
-                          src={item.imageUrl || data.bannerUrl}
+                          src={publicImageUrl(item.imageUrl || data.bannerUrl)}
                           alt=""
                           loading="lazy"
                           decoding="async"
@@ -194,7 +195,7 @@ function CategoryContestants({
                 <div className="contestant-portrait">
                   {candidate.photoUrl ? (
                     <img
-                      src={candidate.photoUrl}
+                      src={publicImageUrl(candidate.photoUrl)}
                       alt={candidate.name}
                       loading="lazy"
                       decoding="async"

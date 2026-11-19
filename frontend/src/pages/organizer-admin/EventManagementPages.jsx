@@ -627,7 +627,7 @@ function MfaPanel({ enabledInitially, hasPhone }) {
         method: "DELETE",
         body: JSON.stringify({ password }),
       });
-      window.location.assign("/organizers/login");
+      window.location.assign("/login");
     } catch (error) {
       setState({ loading: false, error: error.message });
     }

@@ -128,7 +128,7 @@ export function PaymentsRoute() {
 function PortalRedirect() {
   const navigate = useNavigate();
   useEffect(() => {
-    navigate('/organizers/login', { replace: true });
+    navigate('/login', { replace: true });
   }, [navigate]);
   return (
     <div className="admin-loading">
@@ -138,25 +138,14 @@ function PortalRedirect() {
   );
 }
 
-export function LoginPortalRoute({ portal }) {
+export function LoginRoute() {
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
   useEffect(() => {
     api('/api/v1/auth/me')
-      .then((session) => {
-        const permitted =
-          portal === 'superadmin'
-            ? session.globalRole === 'SUPER_ADMIN'
-            : session.globalRole !== 'SUPER_ADMIN' &&
-              session.role === 'EVENT_ADMIN';
-        if (permitted) navigate('/dashboard', { replace: true });
-        else
-          api('/api/v1/auth/logout', { method: 'POST' }).finally(() =>
-            setChecking(false),
-          );
-      })
+      .then(() => navigate('/dashboard', { replace: true }))
       .catch(() => setChecking(false));
-  }, [navigate, portal]);
+  }, [navigate]);
   if (checking)
     return (
       <div className="admin-loading">
@@ -165,10 +154,7 @@ export function LoginPortalRoute({ portal }) {
       </div>
     );
   return (
-    <LoginPage
-      portal={portal}
-      onLogin={() => navigate('/dashboard', { replace: true })}
-    />
+    <LoginPage onLogin={() => navigate('/dashboard', { replace: true })} />
   );
 }
 

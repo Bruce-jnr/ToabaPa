@@ -72,7 +72,14 @@ app.use(
 app.use(
   helmet({ strictTransportSecurity: strictTransportSecurity(env.NODE_ENV) }),
 );
-app.use(cors({ origin: env.APP_URL, credentials: true }));
+app.use(cors((req, next) => {
+  const marketingPublicRead = req.header('origin') === env.MARKETING_URL &&
+    ['GET', 'HEAD', 'OPTIONS'].includes(req.method) &&
+    req.path.startsWith('/api/v1/public/');
+  next(null, marketingPublicRead
+    ? { origin: env.MARKETING_URL, credentials: false }
+    : { origin: env.APP_URL, credentials: true });
+}));
 app.use(
   '/api/webhooks',
   apiRateLimit({ windowMs: 60_000, limit: 120 }),
@@ -86,6 +93,14 @@ app.use(
 );
 app.use(express.json({ limit: '100kb' }));
 app.use(cookieParser());
+
+app.use('/api/v1', (req, res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || !req.header('origin') || req.header('origin') === env.APP_URL) {
+    next();
+    return;
+  }
+  res.status(403).json({ success: false, error: { code: 'INVALID_REQUEST_ORIGIN', message: 'Request origin was rejected.' } });
+});
 
 app.use('/api', apiRateLimit({ windowMs: 60_000, limit: 120 }));
 app.use('/api/health', healthRouter);
@@ -160,6 +175,10 @@ app.use(
   apiRateLimit({ windowMs: 60_000, limit: 30 }),
   financialRouter,
 );
+app.use(['/api/v1/public/candidate-images', '/api/v1/public/event-images'], (_req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+});
 app.get('/api/v1/public/candidate-images/:filename', serveStoredImage('candidates'));
 app.get('/api/v1/public/event-images/:filename', serveStoredImage('events'));
 app.use(
@@ -197,6 +216,18 @@ app.use(
   }),
   voteOrdersRouter,
 );
+
+// Railway can serve the app and API on one origin. Marketing has its own build.
+if (env.NODE_ENV === 'production') {
+  const appDirectory = path.resolve(process.cwd(), 'dist');
+  app.use(express.static(appDirectory, { index: false }));
+  app.get('/{*path}', (req, res, next) => {
+    if (req.path === '/api' || req.path.startsWith('/api/')) return next();
+    return res.sendFile(path.join(appDirectory, 'index.html'), (error) => {
+      if (error) next(error);
+    });
+  });
+}
 
 app.use(notFoundHandler);
 app.use(errorHandler);

@@ -1,5 +1,6 @@
 import { ArrowRight, BarChart3, CheckCircle2, ShieldCheck, Smartphone, Vote, WalletCards, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { appHref } from '../../lib/siteUrls.js';
 import organizerHero from '../../assets/organizer-hero.jpg';
 import { PublicShell as Shell } from '../../components/layout/PublicShell.jsx';
 
@@ -41,7 +42,7 @@ export function HowItWorksPage() {
             every verified transaction in one organized workspace.
           </p>
           <div className="organizer-hero-actions">
-            <Link className="organizer-primary" to="/organizers/login">
+            <Link className="organizer-primary" to={appHref('/login')}>
               Organizer login <ArrowRight />
             </Link>
             <a className="organizer-secondary" href="#workflow">
@@ -96,7 +97,7 @@ export function HowItWorksPage() {
             Build the event in stages, open voting when you are ready, and keep
             financial and vote records traceable after results are announced.
           </p>
-          <Link to="/organizers/login">
+          <Link to={appHref('/login')}>
             Open Organizers workspace <ArrowRight />
           </Link>
         </div>
@@ -224,7 +225,7 @@ export function HowItWorksPage() {
         <span className="eyebrow">Prepare your next event</span>
         <h2>Give your team a better way to run public voting.</h2>
         <p>Start with event details, schedule, pricing, and voting channels.</p>
-        <Link className="organizer-primary" to="/organizers/login">
+        <Link className="organizer-primary" to={appHref('/login')}>
           Organizer login <ArrowRight />
         </Link>
       </section>

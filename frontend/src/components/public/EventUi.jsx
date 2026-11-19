@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { formatDate } from "../../lib/format.js";
+import { eventHref, isMarketingSite, publicImageUrl } from "../../lib/siteUrls.js";
 
 export function SearchForm({
   initialValue = "",
@@ -66,12 +67,12 @@ export function EventCard({ event, featured = false }) {
   return (
     <Link
       className={`event-card ${featured ? "featured" : ""}`}
-      to={`/events/${event.slug}`}
+      to={eventHref(event.slug)}
       aria-label={`Explore ${event.name}`}
     >
       <div className="event-image">
         {event.bannerUrl && (
-          <img src={event.bannerUrl} alt="" loading="lazy" decoding="async" />
+          <img src={publicImageUrl(event.bannerUrl)} alt="" loading="lazy" decoding="async" crossOrigin={isMarketingSite ? 'anonymous' : undefined} />
         )}
         <StatusBadge status={event.publicStatus} />
         {!event.bannerUrl && (

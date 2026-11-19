@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, LoaderCircle } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { PublicShell as Shell } from '../../components/layout/PublicShell.jsx';
 import { getJson } from '../../lib/publicApi.js';
+import { marketingHref } from '../../lib/siteUrls.js';
 
 export function PaymentVerifyPage() {
   const [params] = useSearchParams();
@@ -49,7 +50,7 @@ export function PaymentVerifyPage() {
             <span className="eyebrow">Payment not confirmed</span>
             <h1>Your votes have not been credited.</h1>
             <p>{state.error}</p>
-            <Link className="secondary-action" to="/events">
+            <Link className="secondary-action" to={marketingHref('/events')}>
               Return to events
             </Link>
           </>
@@ -64,7 +65,7 @@ export function PaymentVerifyPage() {
               {state.data.quantity} votes were credited successfully. Reference:{' '}
               <strong>{state.data.reference}</strong>
             </p>
-            <Link className="primary-action" to="/events">
+            <Link className="primary-action" to={marketingHref('/events')}>
               Explore more events
             </Link>
           </>

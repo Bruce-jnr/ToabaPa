@@ -35,6 +35,7 @@ const envSchema = z.object({
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10),
   DATABASE_URL: z.string().url(),
   APP_URL: z.string().url(),
+  MARKETING_URL: z.string().url(),
   API_URL: z.string().url(),
   SESSION_SECRET: z.string().min(32),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]),
@@ -109,9 +110,10 @@ if (env.NODE_ENV === "production") {
     throw new Error("SESSION_SECRET must not be a placeholder in production.");
   if (
     !env.APP_URL.startsWith("https://") ||
+    !env.MARKETING_URL.startsWith("https://") ||
     !env.API_URL.startsWith("https://")
   )
-    throw new Error("APP_URL and API_URL must use HTTPS in production.");
+    throw new Error("APP_URL, MARKETING_URL, and API_URL must use HTTPS in production.");
   if (!env.PAYSTACK_SECRET_KEY?.startsWith("sk_live_"))
     throw new Error("A Paystack live secret key is required in production.");
 }

@@ -3,6 +3,7 @@ import { ChevronRight, Menu, X } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import logo from "../../assets/logo.png";
 import { useFocusTrap } from "../../lib/useFocusTrap.js";
+import { appHref, publicPageHref } from "../../lib/siteUrls.js";
 
 export function PublicShell({ children }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -15,17 +16,17 @@ export function PublicShell({ children }) {
         Skip to content
       </a>
       <header className="site-header">
-        <Link className="brand" to="/" aria-label="Toabapa home">
+        <Link className="brand" to={publicPageHref('/')} aria-label="Toabapa home">
           <img src={logo} alt="Toabapa" />
         </Link>
         <nav className="desktop-nav" aria-label="Primary navigation">
-          <NavLink to="/">Home</NavLink>
-          <NavLink to="/events">Explore</NavLink>
-          <NavLink to="/how-it-works">How it works</NavLink>
-          <NavLink to="/contact">Contact</NavLink>
+          <NavLink to={publicPageHref('/')}>Home</NavLink>
+          <NavLink to={publicPageHref('/events')}>Explore</NavLink>
+          <NavLink to={publicPageHref('/how-it-works')}>How it works</NavLink>
+          <NavLink to={publicPageHref('/contact')}>Contact</NavLink>
         </nav>
         <div className="header-actions">
-          <Link className="organizer-link" to="/organizers/login">
+          <Link className="organizer-link" to={appHref('/login')}>
             For organizers
           </Link>
           <button
@@ -59,7 +60,7 @@ export function PublicShell({ children }) {
           >
             <header>
               <Link
-                to="/"
+                to={publicPageHref('/')}
                 aria-label="Toabapa home"
                 onClick={() => setMenuOpen(false)}
               >
@@ -76,38 +77,38 @@ export function PublicShell({ children }) {
               </button>
             </header>
             <nav>
-              <Link to="/" onClick={() => setMenuOpen(false)}>
+              <Link to={publicPageHref('/')} onClick={() => setMenuOpen(false)}>
                 Home <ChevronRight />
               </Link>
-              <Link to="/events" onClick={() => setMenuOpen(false)}>
+              <Link to={publicPageHref('/events')} onClick={() => setMenuOpen(false)}>
                 Explore events <ChevronRight />
               </Link>
-              <Link to="/how-it-works" onClick={() => setMenuOpen(false)}>
+              <Link to={publicPageHref('/how-it-works')} onClick={() => setMenuOpen(false)}>
                 How it works <ChevronRight />
               </Link>
               <Link
-                to="/events?focus=search"
+                to={publicPageHref('/events?focus=search')}
                 onClick={() => setMenuOpen(false)}
               >
                 Search <ChevronRight />
               </Link>
               <Link
                 className="mobile-organizer-menu-link"
-                to="/organizers/login"
+                to={appHref('/login')}
                 onClick={() => setMenuOpen(false)}
               >
                 For organizers <ChevronRight />
               </Link>
-              <Link to="/#faq" onClick={() => setMenuOpen(false)}>
+              <Link to={publicPageHref('/#faq')} onClick={() => setMenuOpen(false)}>
                 FAQ <ChevronRight />
               </Link>
-              <Link to="/privacy" onClick={() => setMenuOpen(false)}>
+              <Link to={publicPageHref('/privacy')} onClick={() => setMenuOpen(false)}>
                 Privacy Policy <ChevronRight />
               </Link>
-              <Link to="/contact" onClick={() => setMenuOpen(false)}>
+              <Link to={publicPageHref('/contact')} onClick={() => setMenuOpen(false)}>
                 Contact us <ChevronRight />
               </Link>
-              <Link to="/terms" onClick={() => setMenuOpen(false)}>
+              <Link to={publicPageHref('/terms')} onClick={() => setMenuOpen(false)}>
                 Terms &amp; Conditions <ChevronRight />
               </Link>
             </nav>
@@ -116,18 +117,18 @@ export function PublicShell({ children }) {
       )}
       <main id="main-content">{children}</main>
       <footer className="site-footer">
-        <Link to="/" aria-label="Toabapa home">
+        <Link to={publicPageHref('/')} aria-label="Toabapa home">
           <img src={logo} alt="Toabapa" />
         </Link>
         <p>&copy; {new Date().getFullYear()} Toabapa. All rights reserved.</p>
         <nav aria-label="Footer navigation">
-          <Link to="/events">Explore events</Link>
-          <Link to="/how-it-works">How it works</Link>
-          <Link to="/organizers/login">For organizers</Link>
-          <Link to="/contact">Contact us</Link>
-          <Link to="/privacy">Privacy</Link>
-          <Link to="/terms">Terms</Link>
-          <Link to="/#faq">FAQ</Link>
+          <Link to={publicPageHref('/events')}>Explore events</Link>
+          <Link to={publicPageHref('/how-it-works')}>How it works</Link>
+          <Link to={appHref('/login')}>For organizers</Link>
+          <Link to={publicPageHref('/contact')}>Contact us</Link>
+          <Link to={publicPageHref('/privacy')}>Privacy</Link>
+          <Link to={publicPageHref('/terms')}>Terms</Link>
+          <Link to={publicPageHref('/#faq')}>FAQ</Link>
         </nav>
       </footer>
     </div>

@@ -23,6 +23,7 @@ import { AppError } from "../errors/app-error.js";
 import { type AuthenticatedRequest, requireAuth } from "../middleware/auth.js";
 import { normalizeGhanaPhone } from "../domain/phone.js";
 import { auditRequestContext } from "../security/audit-request.js";
+import { canAccessDashboard } from "../auth/login-access.js";
 import { enqueueAlert } from "../alerts/alert-outbox.service.js";
 import {
   sendPasswordResetOtp,
@@ -34,14 +35,12 @@ import {
 } from "../messaging/arkesel-otp.provider.js";
 
 export const authRouter = Router();
-const portalSchema = z.enum(["superadmin", "administrator"]);
 const loginSchema = z.object({
   identifier: z.string().trim().min(3).max(254),
   password: z
     .string()
     .min(6, "Password must contain at least 6 characters.")
     .max(200),
-  portal: portalSchema,
 });
 const newPasswordSchema = z
   .string()
@@ -63,15 +62,11 @@ authRouter.post("/login", async (req, res, next) => {
     const input = loginSchema.parse(req.body);
     const identifier = input.identifier.toLowerCase();
     const user = await prisma.user.findFirst({
-      where:
-        input.portal === "superadmin"
-          ? { email: identifier }
-          : { username: identifier },
+      where: { OR: [{ email: identifier }, { username: identifier }] },
       include: {
         memberships: {
           where: { status: MembershipStatus.ACTIVE },
           include: { organization: true },
-          take: 1,
         },
       },
     });
@@ -91,12 +86,11 @@ authRouter.post("/login", async (req, res, next) => {
         operatorAction:
           "Review the account and source fingerprints for possible credential stuffing.",
         details: {
-          portal: input.portal,
           accountFingerprint,
           ipFingerprint,
         },
         threshold: 5,
-        dedupeParts: [input.portal, accountFingerprint, ipFingerprint],
+        dedupeParts: [accountFingerprint, ipFingerprint],
       });
       throw new AppError(
         401,
@@ -104,25 +98,18 @@ authRouter.post("/login", async (req, res, next) => {
         "Email or password is incorrect.",
       );
     }
-    const membership = user.memberships[0];
+    const membership = user.memberships.find((item) => canAccessDashboard(user.globalRole, item));
     if (!membership)
       throw new AppError(
         403,
         "NO_ORGANIZATION_ACCESS",
         "No active organization membership was found.",
       );
-    const permitted =
-      input.portal === "superadmin"
-        ? user.globalRole === "SUPER_ADMIN"
-        : user.globalRole !== "SUPER_ADMIN" &&
-          membership.role === "EVENT_ADMIN";
-    if (!permitted)
+    if (!canAccessDashboard(user.globalRole, membership))
       throw new AppError(
         403,
-        "WRONG_LOGIN_PORTAL",
-        input.portal === "superadmin"
-          ? "Use a superadmin account for this portal."
-          : "Use an assigned event administrator account for this portal.",
+        "DASHBOARD_ACCESS_REQUIRED",
+        "This account does not have dashboard access.",
       );
     if (user.twoFactorEnabled) {
       if (!user.phone)
@@ -190,7 +177,6 @@ authRouter.post("/login/mfa", async (req, res, next) => {
       .object({
         challengeId: z.string().cuid(),
         otp: z.string().regex(/^\d{6}$/),
-        portal: portalSchema,
       })
       .parse(req.body);
     const challenge = await prisma.loginChallenge.findFirst({
@@ -201,7 +187,6 @@ authRouter.post("/login/mfa", async (req, res, next) => {
             memberships: {
               where: { status: MembershipStatus.ACTIVE },
               include: { organization: true },
-              take: 1,
             },
           },
         },
@@ -238,25 +223,18 @@ authRouter.post("/login/mfa", async (req, res, next) => {
         "INVALID_MFA_OTP",
         "The sign-in code is invalid or has expired.",
       );
-    const membership = challenge.user.memberships[0];
+    const membership = challenge.user.memberships.find((item) => canAccessDashboard(challenge.user.globalRole, item));
     if (!membership)
       throw new AppError(
         403,
         "NO_ORGANIZATION_ACCESS",
         "No active organization membership was found.",
       );
-    const permitted =
-      input.portal === "superadmin"
-        ? challenge.user.globalRole === "SUPER_ADMIN"
-        : challenge.user.globalRole !== "SUPER_ADMIN" &&
-          membership.role === "EVENT_ADMIN";
-    if (!permitted)
+    if (!canAccessDashboard(challenge.user.globalRole, membership))
       throw new AppError(
         403,
-        "WRONG_LOGIN_PORTAL",
-        input.portal === "superadmin"
-          ? "Use a superadmin account for this portal."
-          : "Use an assigned event administrator account for this portal.",
+        "DASHBOARD_ACCESS_REQUIRED",
+        "This account does not have dashboard access.",
       );
     const consumed = await prisma.loginChallenge.updateMany({
       where: { id: challenge.id, consumedAt: null },
