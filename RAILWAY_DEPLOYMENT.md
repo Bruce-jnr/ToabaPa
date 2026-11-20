@@ -67,7 +67,15 @@ In the **App + API** service, open **Settings → Deploy → Pre-deploy Command*
 If the running service reports `The table public.AuditLog does not exist` or similar errors for `Payment`, `AuthSession`, or `AlertOutbox`, the connected database has not received the migrations. Confirm `DATABASE_URL` references the intended PostgreSQL service and schema, then check the **pre-deploy logs** for migration success before restarting the app. Do not use `prisma db push` or seed data to work around a failed migration. The existing application may continue producing worker errors until the migrated deployment becomes active.
 >>>>>>> social
 
-Do **not** run `npm run db:seed` in production; it inserts demo data and a demo paid vote. For an empty database, use the one-time superadmin bootstrap in [VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md#one-time-superadmin-bootstrap-for-an-empty-database) in a secure environment that can reach the Railway database. For an existing database, preserve its real superadmin account and back up the data before migration.
+Do **not** run `npm run db:seed` in production; it inserts demo data and a demo paid vote. For an existing database, preserve its real superadmin account and back up the data before migration.
+
+### First superadmin on an empty Railway database
+
+After the pre-deploy migration succeeds, open a shell in the **App + API** service using the Railway CLI: `railway ssh --service "App + API" --environment production` (use the exact Railway service and environment names). Railway SSH runs inside the deployed container, so it can use that service's private `DATABASE_URL` ([Railway SSH guide](https://docs.railway.com/cli/ssh)). If necessary, run `railway login` and `railway link` locally first.
+
+Inside that shell, use the one-time [superadmin bootstrap commands in the VPS guide](VPS_DEPLOYMENT.md#one-time-superadmin-bootstrap-for-an-empty-database), **starting at the `read -rp 'Superadmin email...'` line**. Skip the VPS-only `cd /srv/toabapa/app` line. The commands prompt for an email and password, refuse to run if any user already exists, and create one active superadmin membership without demo events or votes. If `read -rp` is unsupported in the container shell, start `bash` first. Do not paste the password into a Railway command, logs, or chat.
+
+Then visit `https://app.toabapa.com/login` and sign in with that email and password. If the bootstrap says users already exist, stop; it will not modify existing accounts. Inspect the existing account or its recovery route instead of creating a second superadmin.
 
 ## 4. Connect domains
 

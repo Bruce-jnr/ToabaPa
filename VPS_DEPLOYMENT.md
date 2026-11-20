@@ -115,8 +115,8 @@ Run this only after migrations, and only when the `User` table is empty. It asks
 
 ```bash
 cd /srv/toabapa/app
-read -rp 'Superadmin email: ' BOOTSTRAP_EMAIL
-read -rsp 'Superadmin password: ' BOOTSTRAP_PASSWORD; echo
+read -rp 'Superadmin email: ' asarebruce@gmail.com
+read -rsp 'Superadmin password: ' Arabmoney@1234; echo
 export BOOTSTRAP_EMAIL BOOTSTRAP_PASSWORD
 node --input-type=module <<'NODE'
 import 'dotenv/config';
