@@ -1,4 +1,4 @@
-# Deploy Toabapa on Railway
+﻿# Deploy Toabapa on Railway
 
 Deploy this monorepo as **three services in one Railway project**: PostgreSQL, **App + API**, and **Marketing**. The app and API share `app.toabapa.com`, so login cookies and `/api` requests remain on one origin. The marketing site uses `toabapa.com` and reads public events from the app API. Railway supports separate services from one repository with distinct build and start commands ([monorepo guide](https://docs.railway.com/deployments/monorepo)).
 
@@ -43,6 +43,7 @@ Also add every required production setting from [`.env.example`](.env.example): 
 On **Marketing**, set:
 
 ```env
+NODE_ENV=production
 SITE_BUILD=marketing
 VITE_APP_URL=https://app.toabapa.com
 VITE_MARKETING_URL=https://toabapa.com
@@ -51,21 +52,13 @@ VITE_PUBLIC_API_URL=https://app.toabapa.com
 
 Railway supplies the marketing service's `PORT`; `frontend/serve-static.mjs` reads it. Frontend `VITE_*` values are compiled into each build, so redeploy the relevant service after changing them ([Vite environment guide](https://vite.dev/guide/env-and-mode)).
 
+The marketing server uses `VITE_PUBLIC_API_URL` at runtime to allow public event requests and images in its Content Security Policy. It sends HSTS only when `NODE_ENV=production`; HTTPS must already work on the marketing domain. Its HSTS policy does not include subdomains, which are configured separately.
+
 ## 3. Run database migrations
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-The App + API service runs `npm run db:deploy` as its pre-deploy command (`railway.json`), so pending migrations are applied before each release; the start command only starts the app. Prisma recommends `migrate deploy` in production ([Prisma deployment guide](https://docs.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate)).
-=======
-In the **App + API** service, open **Settings → Deploy → Pre-deploy Command** and enter `npm run db:deploy`. Save the setting and redeploy. Railway runs this command after building and before starting the new application, with the service's variables and private database access. A failed migration stops the deployment ([Railway pre-deploy documentation](https://docs.railway.com/deployments/pre-deploy-command)). Prisma's script applies the committed migrations to the database selected by `DATABASE_URL` ([Prisma deployment guide](https://docs.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate)).
+The App + API service runs `npm run db:deploy` as its pre-deploy command (`railway.json`). Railway runs it after building and before starting the new application, with private database access. A failed migration stops the deployment ([Railway pre-deploy documentation](https://docs.railway.com/deployments/pre-deploy-command)). Prisma recommends `migrate deploy` for production ([Prisma deployment guide](https://docs.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate)).
 
-If the running service reports `The table public.AuditLog does not exist` or similar errors for `Payment`, `AuthSession`, or `AlertOutbox`, the connected database has not received the migrations. Confirm `DATABASE_URL` references the intended PostgreSQL service and schema, then check the **pre-deploy logs** for migration success before restarting the app. Do not use `prisma db push` or seed data to work around a failed migration. The existing application may continue producing worker errors until the migrated deployment becomes active.
->>>>>>> 0e23a7f (modified the deployment for railway)
-=======
-In the **App + API** service, open **Settings → Deploy → Pre-deploy Command** and enter `npm run db:deploy`. Save the setting and redeploy. Railway runs this command after building and before starting the new application, with the service's variables and private database access. A failed migration stops the deployment ([Railway pre-deploy documentation](https://docs.railway.com/deployments/pre-deploy-command)). Prisma's script applies the committed migrations to the database selected by `DATABASE_URL` ([Prisma deployment guide](https://docs.prisma.io/docs/orm/prisma-client/deployment/deploy-database-changes-with-prisma-migrate)).
-
-If the running service reports `The table public.AuditLog does not exist` or similar errors for `Payment`, `AuthSession`, or `AlertOutbox`, the connected database has not received the migrations. Confirm `DATABASE_URL` references the intended PostgreSQL service and schema, then check the **pre-deploy logs** for migration success before restarting the app. Do not use `prisma db push` or seed data to work around a failed migration. The existing application may continue producing worker errors until the migrated deployment becomes active.
->>>>>>> social
+If the running service reports missing tables such as `AuditLog` or `Payment`, confirm `DATABASE_URL` references the intended PostgreSQL service and check the pre-deploy logs for migration success. Do not use `prisma db push` or demo seed data to work around a failed migration.
 
 Do **not** run `npm run db:seed` in production; it inserts demo data and a demo paid vote. For an existing database, preserve its real superadmin account and back up the data before migration.
 
@@ -98,3 +91,4 @@ Verify the exact provider callback requirements in their dashboards before enabl
 5. Test an event, checkout, Paystack webhook, Nalo callback, image upload, and Telegram alert with provider test facilities before using live payments.
 
 Keep Railway deployment logs and API error logs available during the first release. The marketing origin is authorized only for public API reads; authenticated writes remain on the app origin.
+
