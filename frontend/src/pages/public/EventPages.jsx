@@ -103,7 +103,7 @@ export function HomePage() {
             </p>
           </div>
           <Link to="/events?status=ended">
-            See all examples <ArrowRight />
+            See all <ArrowRight />
           </Link>
         </ScrollReveal>
         <div className="event-grid">
