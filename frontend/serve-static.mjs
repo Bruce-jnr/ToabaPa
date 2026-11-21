@@ -2,6 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { marketingPages } from './marketing-seo.js';
 
 const port = Number(process.env.PORT);
 const site = process.env.SITE_BUILD;
@@ -78,42 +79,10 @@ if (site === 'marketing') {
 app.use(express.static(directory, { index: false }));
 if (site === 'marketing') {
   const template = readFileSync(path.join(directory, 'index.html'), 'utf8');
-  const pages = {
-    '/': [
-      'Toabapa | Online Voting for Events in Ghana',
-      'Discover live events and learn how online voting works with Toabapa.',
-    ],
-
-    '/how-it-works': [
-      'How Online Voting Works | Toabapa',
-      'Learn how organizers create events and how supporters cast verified votes on Toabapa.',
-    ],
-    '/contact': [
-      'Contact Toabapa',
-      'Get in touch with Toabapa support by phone, WhatsApp, or email.',
-    ],
-  };
-  app.get('/robots.txt', (_req, res) => {
-    res
-      .type('text/plain')
-      .send(
-        `User-agent: *\nAllow: /\nSitemap: ${marketingOrigin}/sitemap.xml\n`,
-      );
-  });
-  app.get('/sitemap.xml', (_req, res) => {
-    const urls = Object.keys(pages)
-      .map((route) => `  <url><loc>${marketingOrigin}${route}</loc></url>`)
-      .join('\n');
-    res
-      .type('application/xml')
-      .send(
-        `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`,
-      );
-  });
   app.get('/{*path}', (req, res) => {
     const route = req.path.length > 1 ? req.path.replace(/\/$/, '') : req.path;
     const isDemo = route.startsWith('/demo/events/');
-    const page = pages[route];
+    const page = marketingPages[route];
     if (!page && !isDemo)
       return res.status(404).type('text/plain').send('Page not found');
     const [title, description] = page || [

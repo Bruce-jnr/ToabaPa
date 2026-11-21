@@ -15,6 +15,8 @@ Set each service's build and start commands in its Railway settings ([build and 
 
 The app build is served by Express in production. Its SPA fallback handles direct visits to app routes while `/api/*` stays with the API. The marketing server serves `dist-marketing` and supports direct visits to its routes.
 
+The root `railway.json` configures the App + API service. For the Marketing service, set its Railway **Config File** path to `/frontend/railway.marketing.json` if Railway is applying the root configuration to both services. This service-specific file supplies the marketing build, start, and healthcheck settings; otherwise the root API start command can override the Marketing settings in the dashboard. Check each deployment's effective settings after changing this path. [Railway config precedence](https://docs.railway.com/config-as-code)
+
 ## 2. Set environment variables
 
 **Railway build requirement:** Add the `VITE_*` variables to the same Railway service that runs each Vite build, before triggering deployment. In particular, the **App + API** service must have `VITE_APP_URL`, `VITE_MARKETING_URL`, and `VITE_API_URL`. Railway does not read your local `.env`, and variables configured only on the Marketing service are not available to the App + API build. After saving variables, redeploy the service from the Railway dashboard. If the build still says a variable is missing, check the selected Railway environment and service, and make sure the variable is available during the build rather than only at runtime.
