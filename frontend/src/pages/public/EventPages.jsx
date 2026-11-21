@@ -97,10 +97,6 @@ export function HomePage() {
           <div>
             <span className="eyebrow">Explore the ended Events</span>
             <h2>Sample ended events</h2>
-            <p>
-              Illustrative examples only. No voting or results might be hidden
-              by the program organizer.
-            </p>
           </div>
           <Link to="/events?status=ended">
             See all <ArrowRight />
