@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Request } from 'express';
 import { rateLimitPhoneKeyFromBody } from '../middleware/rate-limit.js';
-import { createVoteOrderSchema } from '../services/vote-order.service.js';
+import { createVoteOrder, createVoteOrderSchema } from '../services/vote-order.service.js';
 
 describe('input hardening', () => {
   it('does not accept a caller-selected vote channel', () => {
@@ -18,5 +18,11 @@ describe('input hardening', () => {
     const key = rateLimitPhoneKeyFromBody('phone');
     const request = (phone: string) => ({ body: { phone } }) as Request;
     expect(key(request('0244000000'))).toBe(key(request('+233 24 400 0000')));
+  });
+
+  it('accepts web vote details without a phone but still requires one for USSD', async () => {
+    const input = { candidateId: 'cm12345678901234567890123', quantity: 1 };
+    expect(createVoteOrderSchema.parse(input)).not.toHaveProperty('phone');
+    await expect(createVoteOrder(input, 'USSD')).rejects.toMatchObject({ code: 'PHONE_REQUIRED' });
   });
 });

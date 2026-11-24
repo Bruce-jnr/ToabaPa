@@ -170,7 +170,6 @@ export class PaystackProvider implements PaymentProvider {
     amount: number;
     currency: string;
     email?: string;
-    phone: string;
     callbackUrl: string;
   }): Promise<PaymentInitialization> {
     if (!input.email)
@@ -188,7 +187,6 @@ export class PaystackProvider implements PaymentProvider {
         email: input.email,
         callback_url: input.callbackUrl,
         metadata: JSON.stringify({
-          phone: input.phone,
           source: "Toabapa web voting",
         }),
       }),

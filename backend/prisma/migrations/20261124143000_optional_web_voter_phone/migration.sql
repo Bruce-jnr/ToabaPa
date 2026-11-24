@@ -1,0 +1,1 @@
+ALTER TABLE "VoteOrder" ALTER COLUMN "voterPhone" DROP NOT NULL;

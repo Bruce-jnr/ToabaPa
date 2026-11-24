@@ -12,7 +12,6 @@ import { SnackbarNotice } from "../SnackbarProvider.jsx";
 export function VoteDialog({ candidate, event, onClose }) {
   const [voteInput, setVoteInput] = useState("");
   const quantity = Number(voteInput);
-  const [contact, setContact] = useState({ phone: "" });
   const [order, setOrder] = useState(null);
   const [state, setState] = useState({
     phase: "details",
@@ -52,7 +51,6 @@ export function VoteDialog({ candidate, event, onClose }) {
         body: JSON.stringify({
           candidateId: candidate.id,
           quantity,
-          phone: contact.phone,
           channel: "WEB",
         }),
       });
@@ -154,22 +152,6 @@ export function VoteDialog({ candidate, event, onClose }) {
               </label>
               <small id="vote-quantity-help">Minimum {event.minimumVotes}, maximum {event.maximumVotesPerTransaction} votes.</small>
             </fieldset>
-            <div className="vote-contact single">
-              <label>
-                Mobile number
-                <input
-                  type="tel"
-                  value={contact.phone}
-                  onChange={(inputEvent) =>
-                    setContact({ phone: inputEvent.target.value })
-                  }
-                  placeholder="+233 20 000 0000"
-                  minLength="7"
-                  maxLength="20"
-                  required
-                />
-              </label>
-            </div>
             <SnackbarNotice message={state.error} />
             <footer>
               <div>

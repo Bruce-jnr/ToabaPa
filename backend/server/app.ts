@@ -19,7 +19,6 @@ import { webhookRouter } from './routes/webhook.routes.js';
 import {
   apiRateLimit,
   rateLimitKeyFromBody,
-  rateLimitPhoneKeyFromBody,
 } from './middleware/rate-limit.js';
 import { financialRouter } from './routes/financial.routes.js';
 import { strictTransportSecurity } from './security/http-headers.js';
@@ -211,7 +210,6 @@ app.use(
   apiRateLimit({
     windowMs: 60_000,
     limit: 12,
-    keyGenerator: rateLimitPhoneKeyFromBody('phone'),
     handler: authRateLimitHandler,
   }),
   voteOrdersRouter,

@@ -13,7 +13,7 @@ import { normalizeGhanaPhone } from "../domain/phone.js";
 export const createVoteOrderSchema = z.object({
   candidateId: z.string().cuid(),
   quantity: z.number().int().positive(),
-  phone: z.string().trim().min(7).max(20),
+  phone: z.string().trim().min(7).max(20).optional(),
   email: z.string().trim().toLowerCase().email().max(254).optional(),
   ussdSessionId: z.string().min(1).max(100).optional(),
 });
@@ -28,7 +28,9 @@ export async function createVoteOrder(
   channel: 'WEB' | 'USSD',
 ) {
   const input = createVoteOrderSchema.parse(rawInput);
-  const phone = normalizeGhanaPhone(input.phone);
+  if (channel === 'USSD' && !input.phone)
+    throw new AppError(400, 'PHONE_REQUIRED', 'A phone number is required for USSD voting.');
+  const phone = input.phone ? normalizeGhanaPhone(input.phone) : null;
   const candidate = await prisma.candidate.findUnique({
     where: { id: input.candidateId },
     include: { event: true, category: true },

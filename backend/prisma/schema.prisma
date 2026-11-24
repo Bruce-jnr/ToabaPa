@@ -336,7 +336,7 @@ model VoteOrder {
   unitPrice           Int
   amount              Int
   currency            String
-  voterPhone          String
+  voterPhone          String?
   voterEmail          String?
   channel             VoteChannel
   paymentProvider     PaymentProviderName

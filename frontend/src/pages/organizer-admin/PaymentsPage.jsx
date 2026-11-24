@@ -393,7 +393,7 @@ export function PaymentsPage({ session }) {
               </div>
               <div>
                 <dt>Voter phone</dt>
-                <dd>{selected.order.voterPhone}</dd>
+                <dd>{selected.order.voterPhone || "Not collected for web voting"}</dd>
               </div>
               <div>
                 <dt>Requested votes</dt>

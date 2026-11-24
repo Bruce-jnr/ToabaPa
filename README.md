@@ -219,7 +219,7 @@ Publishing an event creates it in PostgreSQL as `SCHEDULED` or `ACTIVE`, based o
 - `GET /api/v1/payments/:reference/verify`
 - `POST /api/webhooks/paystack`
 
-The vote-order endpoint accepts candidate ID, quantity, phone number, and `WEB` or `USSD` channel. The server retrieves the event and category price and calculates the authoritative total.
+The vote-order endpoint accepts candidate ID and quantity. The server selects the `WEB` or `USSD` channel, retrieves the event and category price, and calculates the authoritative total. A phone number is required for USSD orders but optional for web orders.
 
 ### USSD voting
 
@@ -240,7 +240,7 @@ An authenticated organizer must first register a recovery phone from the dashboa
 
 Both `ARKESEL_API_KEY` and `ARKESEL_SENDER_ID` must be configured for OTP delivery.
 
-Voters provide only a phone number. Paystack requires an email field during hosted transaction initialization, so the API supplies the event organization's configured email internally and does not store a voter email unless a future channel explicitly provides one.
+Web voters enter their vote quantity and provide the charging number on Paystack's hosted checkout if their chosen payment method needs it. Paystack requires an email field during hosted transaction initialization, so the API supplies the event organization's configured email internally. USSD orders retain the caller's phone number for the direct mobile money charge.
 
 ### Paystack setup
 

@@ -28,7 +28,7 @@ paymentsRouter.post('/:reference/initialize', async (req, res, next) => {
     const order = await prisma.voteOrder.findUnique({ where: { paymentReference: reference }, include: { organization: { select: { email: true } } } });
     if (!order) throw new AppError(404, 'ORDER_NOT_FOUND', 'Vote order was not found.');
     if (order.paymentStatus === PaymentStatus.PAID) throw new AppError(409, 'ORDER_ALREADY_PAID', 'This order is already paid.');
-    const initialized = await paystackProvider.initializePayment({ reference, amount: order.amount, currency: order.currency, email: order.organization.email, phone: order.voterPhone, callbackUrl: `${env.APP_URL}/payment/verify` });
+    const initialized = await paystackProvider.initializePayment({ reference, amount: order.amount, currency: order.currency, email: order.organization.email, callbackUrl: `${env.APP_URL}/payment/verify` });
     await prisma.voteOrder.update({ where: { id: order.id }, data: { paymentStatus: PaymentStatus.PROCESSING, providerCheckoutUrl: initialized.authorizationUrl } });
     res.json({ success: true, data: initialized });
   } catch (error) { next(error); }

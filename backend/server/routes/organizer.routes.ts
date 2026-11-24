@@ -450,7 +450,7 @@ organizerRouter.get('/payments', requireRoles(...paymentRoles), async (req, res,
       eventSummaryMap.set(event.id, summary);
     }
     res.json({ success: true, data: {
-      items: payments.map((payment) => ({ ...payment, order: { ...payment.order, voterPhone: payment.order.voterPhone.replace(/.(?=.{4})/g, '•') } })),
+      items: payments.map((payment) => ({ ...payment, order: { ...payment.order, voterPhone: payment.order.voterPhone?.replace(/.(?=.{4})/g, '•') ?? null } })),
       summary: { total, paid, failed, successRate: total ? Math.round((paid / total) * 1000) / 10 : 0, creditedVotes: voteAggregate._sum.quantity ?? 0, revenueByCurrency: revenueByCurrency.map((item) => ({ currency: item.currency, amount: item._sum.amount ?? 0 })) },
       eventSummaries: Array.from(eventSummaryMap.values(), (item) => ({ ...item, revenueByCurrency: Array.from(item.revenueByCurrency, ([currency, amount]) => ({ currency, amount })) })).sort((left, right) => left.eventName.localeCompare(right.eventName)),
       pagination: { page: query.page, pageSize: query.pageSize, total, pageCount: Math.ceil(total / query.pageSize) },
@@ -467,7 +467,7 @@ organizerRouter.get('/payments/:id', requireRoles(...paymentRoles), async (req, 
       include: { order: { include: { event: { select: { name: true } }, category: { select: { name: true } }, candidate: { select: { name: true, candidateCode: true } }, voteTransaction: { select: { id: true, quantity: true, createdAt: true } } } } },
     });
     if (!payment) throw new AppError(404, 'PAYMENT_NOT_FOUND', 'Payment was not found.');
-    res.json({ success: true, data: { ...payment, order: { ...payment.order, voterPhone: payment.order.voterPhone.replace(/.(?=.{4})/g, '•'), voterEmail: payment.order.voterEmail ? 'Provided' : null } } });
+    res.json({ success: true, data: { ...payment, order: { ...payment.order, voterPhone: payment.order.voterPhone?.replace(/.(?=.{4})/g, '•') ?? null, voterEmail: payment.order.voterEmail ? 'Provided' : null } } });
   } catch (error) { next(error); }
 });
 

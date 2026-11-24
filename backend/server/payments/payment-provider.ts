@@ -19,7 +19,6 @@ export interface PaymentProvider {
     amount: number;
     currency: string;
     email?: string;
-    phone: string;
     callbackUrl: string;
   }): Promise<PaymentInitialization>;
   verifyPayment(reference: string): Promise<VerifiedPayment>;
