@@ -40,6 +40,7 @@ const eventSchema = z.object({
   timezone: z.string().trim().min(2).max(60),
   currency: z.string().trim().length(3).transform((value) => value.toUpperCase()),
   defaultVotePrice: z.number().int().positive(),
+  eventAsCategory: z.boolean().optional(),
   platformFeeBps: z.number().int().min(0).max(10_000).optional(),
   minimumVotes: z.number().int().positive().max(PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION),
   webVotingEnabled: z.boolean(),
@@ -69,7 +70,7 @@ function slugify(value: string) {
 organizerRouter.get('/context', async (req, res, next) => {
   try {
     const auth = (req as AuthenticatedRequest).auth;
-    const events = await prisma.event.findMany({ where: { ...eventAccessWhere(auth), status: { not: EventStatus.ARCHIVED } }, select: { id: true, name: true, description: true, status: true, bannerUrl: true, startAt: true, endAt: true, timezone: true, currency: true, defaultVotePrice: true, platformFeeBps: true, minimumVotes: true, webVotingEnabled: true, ussdVotingEnabled: true, resultsVisibility: true }, orderBy: { createdAt: 'desc' } });
+    const events = await prisma.event.findMany({ where: { ...eventAccessWhere(auth), status: { not: EventStatus.ARCHIVED } }, select: { id: true, name: true, description: true, status: true, bannerUrl: true, startAt: true, endAt: true, timezone: true, currency: true, defaultVotePrice: true, eventAsCategory: true, platformFeeBps: true, minimumVotes: true, webVotingEnabled: true, ussdVotingEnabled: true, resultsVisibility: true }, orderBy: { createdAt: 'desc' } });
     res.json({ success: true, data: { events } });
   } catch (error) { next(error); }
 });
@@ -161,6 +162,7 @@ organizerRouter.post('/events', requireRoles(...managerRoles), async (req, res, 
       const created = await tx.event.create({
         data: { ...input, platformFeeBps: input.platformFeeBps ?? 0, maximumVotesPerTransaction: PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION, organizationId, slug: `${slugify(input.name)}-${Date.now().toString(36)}`, description: input.description || null, status },
       });
+      if (created.eventAsCategory) await tx.category.create({ data: { eventId: created.id, name: created.name, slug: slugify(created.name) || 'event', description: created.description } });
       if ((req as AuthenticatedRequest).auth.globalRole !== 'SUPER_ADMIN') {
         const membership = await tx.organizationMembership.findUniqueOrThrow({ where: { organizationId_userId: { organizationId, userId } } });
         await tx.eventAssignment.create({ data: { eventId: created.id, membershipId: membership.id } });
@@ -198,6 +200,7 @@ organizerRouter.patch('/events/:id', requireRoles(...managerRoles), async (req, 
     if (!merged.webVotingEnabled && !merged.ussdVotingEnabled) throw new AppError(400, 'VOTING_CHANNEL_REQUIRED', 'Enable at least one voting channel.');
     const updated = await prisma.$transaction(async (tx) => {
       const changed = await tx.event.update({ where: { id }, data: { ...input, maximumVotesPerTransaction: PLATFORM_MAXIMUM_VOTES_PER_TRANSACTION } });
+      if (current.eventAsCategory && (input.name !== undefined || input.description !== undefined)) await tx.category.updateMany({ where: { eventId: id, status: RecordStatus.ACTIVE }, data: { name: changed.name, description: changed.description } });
       await tx.auditLog.create({ data: { organizationId: auth.organizationId, userId: auth.userId, ...auditRequestContext(req), action: 'EVENT_UPDATED', resourceType: 'Event', resourceId: id, oldValue: { name: current.name, startAt: current.startAt, endAt: current.endAt }, newValue: { name: changed.name, startAt: changed.startAt, endAt: changed.endAt } } });
       return changed;
     });
@@ -266,7 +269,7 @@ organizerRouter.get('/categories', async (req, res, next) => {
   try {
     const auth = (req as AuthenticatedRequest).auth;
     const eventId = z.string().cuid().optional().parse(req.query.eventId);
-    const categories = await prisma.category.findMany({ where: { event: eventAccessWhere(auth), ...(eventId ? { eventId } : {}), status: { not: RecordStatus.ARCHIVED } }, include: { event: { select: { name: true, bannerUrl: true } }, _count: { select: { candidates: true } } }, orderBy: [{ eventId: 'asc' }, { displayOrder: 'asc' }] });
+    const categories = await prisma.category.findMany({ where: { event: eventAccessWhere(auth), ...(eventId ? { eventId } : {}), status: { not: RecordStatus.ARCHIVED } }, include: { event: { select: { name: true, bannerUrl: true, eventAsCategory: true } }, _count: { select: { candidates: true } } }, orderBy: [{ eventId: 'asc' }, { displayOrder: 'asc' }] });
     res.json({ success: true, data: categories });
   } catch (error) { next(error); }
 });
@@ -274,9 +277,10 @@ organizerRouter.get('/categories', async (req, res, next) => {
 organizerRouter.post('/categories', requireRoles(...managerRoles), async (req, res, next) => {
   try {
     const input = categorySchema.parse(req.body);
+    const parentEvent = await prisma.event.findFirst({ where: { id: input.eventId, ...eventAccessWhere((req as AuthenticatedRequest).auth) }, select: { eventAsCategory: true } });
+    if (!parentEvent) throw new AppError(404, 'EVENT_NOT_FOUND', 'Event was not found.');
+    if (parentEvent.eventAsCategory) throw new AppError(409, 'EVENT_IS_CATEGORY', 'This event accepts candidates directly.');
     const { organizationId, userId } = (req as AuthenticatedRequest).auth;
-    const event = await prisma.event.findFirst({ where: { id: input.eventId, ...eventAccessWhere((req as AuthenticatedRequest).auth) }, select: { id: true } });
-    if (!event) throw new AppError(404, 'EVENT_NOT_FOUND', 'Event was not found.');
     const category = await prisma.$transaction(async (tx) => {
       const created = await tx.category.create({ data: { ...input, slug: `${slugify(input.name)}-${Date.now().toString(36)}`, description: input.description || null } });
       await tx.auditLog.create({ data: { organizationId, userId, ...auditRequestContext(req), action: 'CATEGORY_CREATED', resourceType: 'Category', resourceId: created.id, newValue: { name: created.name } } });
@@ -291,8 +295,9 @@ organizerRouter.patch('/categories/:id', requireRoles(...managerRoles), async (r
     const input = categorySchema.partial().omit({ eventId: true }).parse(req.body);
     const auth = (req as AuthenticatedRequest).auth;
     const id = z.string().cuid().parse(req.params.id);
-    const current = await prisma.category.findFirst({ where: { id, event: eventAccessWhere(auth) } });
+    const current = await prisma.category.findFirst({ where: { id, event: eventAccessWhere(auth) }, include: { event: { select: { eventAsCategory: true } } } });
     if (!current) throw new AppError(404, 'CATEGORY_NOT_FOUND', 'Category was not found.');
+    if (current.event.eventAsCategory) throw new AppError(409, 'EVENT_IS_CATEGORY', 'Edit the event details instead.');
     const category = await prisma.category.update({ where: { id: current.id }, data: input });
     res.json({ success: true, data: category });
   } catch (error) { next(error); }
@@ -302,8 +307,9 @@ organizerRouter.delete('/categories/:id', requireRoles(...managerRoles), async (
   try {
     const auth = (req as AuthenticatedRequest).auth;
     const id = z.string().cuid().parse(req.params.id);
-    const current = await prisma.category.findFirst({ where: { id, event: eventAccessWhere(auth) }, include: { _count: { select: { candidates: true } } } });
+    const current = await prisma.category.findFirst({ where: { id, event: eventAccessWhere(auth) }, include: { event: { select: { eventAsCategory: true } }, _count: { select: { candidates: true } } } });
     if (!current) throw new AppError(404, 'CATEGORY_NOT_FOUND', 'Category was not found.');
+    if (current.event.eventAsCategory) throw new AppError(409, 'EVENT_IS_CATEGORY', 'The event category cannot be archived.');
     if (current._count.candidates) throw new AppError(409, 'CATEGORY_NOT_EMPTY', 'Move or archive its candidates first.');
     await prisma.category.update({ where: { id: current.id }, data: { status: RecordStatus.ARCHIVED } });
     res.json({ success: true, data: null });

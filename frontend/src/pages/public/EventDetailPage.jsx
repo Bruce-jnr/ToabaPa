@@ -37,7 +37,7 @@ export function EventDetailPage() {
   const data = event.data;
   const selectedCategory = categorySlug
     ? data.categories.find((item) => item.slug === categorySlug)
-    : null;
+    : data.eventAsCategory ? data.categories[0] : null;
   const price = (data.defaultVotePrice / 100).toLocaleString("en-GH", {
     style: "currency",
     currency: data.currency,
@@ -101,7 +101,7 @@ export function EventDetailPage() {
         )}
         {selectedCategory ? (
           <>
-            <h1 className="category-page-title">{selectedCategory.name} candidates and scores</h1>
+            <h1 className="category-page-title">{data.eventAsCategory ? data.name : selectedCategory.name} candidates and scores</h1>
             <CategoryContestants
               candidates={data.candidates.filter((candidate) => candidate.categoryId === selectedCategory.id)}
               eventStatus={data.publicStatus}

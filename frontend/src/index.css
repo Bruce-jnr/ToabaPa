@@ -2396,10 +2396,29 @@ h3 {
 }
 .public-category-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: 22px;
   margin-top: 30px;
 }
+.event-category-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.event-category-option input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--color-primary);
+}
+.event-category-option span { display: grid; gap: 4px; }
+.event-category-option small { color: var(--color-text-muted); line-height: 1.5; }
+.event-category-option:focus-within { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .public-category-card {
   text-decoration: none;
 }

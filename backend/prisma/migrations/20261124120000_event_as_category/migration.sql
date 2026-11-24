@@ -1,0 +1,1 @@
+ALTER TABLE "Event" ADD COLUMN "eventAsCategory" BOOLEAN NOT NULL DEFAULT false;

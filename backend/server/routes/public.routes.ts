@@ -54,6 +54,7 @@ publicRouter.get('/events', async (req, res, next) => {
         slug: true,
         description: true,
         bannerUrl: true,
+        eventAsCategory: true,
         startAt: true,
         endAt: true,
         status: true,
@@ -79,7 +80,7 @@ publicRouter.get('/events/:slug', async (req, res, next) => {
     const event = await prisma.event.findFirst({
       where: { slug, status: { in: [EventStatus.ACTIVE, EventStatus.PAUSED, EventStatus.SCHEDULED, EventStatus.ENDED] } },
       select: {
-        id: true, name: true, slug: true, description: true, bannerUrl: true, startAt: true, endAt: true,
+        id: true, name: true, slug: true, description: true, bannerUrl: true, eventAsCategory: true, startAt: true, endAt: true,
         timezone: true, currency: true, defaultVotePrice: true, minimumVotes: true, maximumVotesPerTransaction: true, status: true, resultsVisibility: true,
         webVotingEnabled: true, ussdVotingEnabled: true,
         organization: { select: { name: true, logoUrl: true } },

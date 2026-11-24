@@ -24,6 +24,7 @@ import {
 } from "./AdminShell.jsx";
 
 import { SnackbarNotice } from "../../components/SnackbarProvider.jsx";
+import { publicImageUrl } from "../../lib/siteUrls.js";
 export function DashboardOverview({ session }) {
   const [state, setState] = useState({ events: [], loading: true, error: "" });
   useEffect(() => {
@@ -113,7 +114,7 @@ export function DashboardOverview({ session }) {
                       </p>
                     </div>
                     <Link
-                      to={`/dashboard/categories?eventId=${encodeURIComponent(event.id)}`}
+                      to={event.eventAsCategory ? `/dashboard/candidates?eventId=${encodeURIComponent(event.id)}` : `/dashboard/categories?eventId=${encodeURIComponent(event.id)}`}
                       aria-label={`Manage ${event.name}`}
                     >
                       <ArrowRight />
@@ -239,11 +240,11 @@ export function EventsManagementPage({ session }) {
                 className="management-card admin-event-card"
                 key={event.id}
               >
-                <Link className="admin-event-main-link" to={`/dashboard/categories?eventId=${encodeURIComponent(event.id)}`} aria-label={`View categories for ${event.name}`}>
+                <Link className="admin-event-main-link" to={event.eventAsCategory ? `/dashboard/candidates?eventId=${encodeURIComponent(event.id)}` : `/dashboard/categories?eventId=${encodeURIComponent(event.id)}`} aria-label={`View ${event.eventAsCategory ? 'candidates' : 'categories'} for ${event.name}`}>
                 <div className={`admin-event-banner ${event.bannerUrl ? "has-banner" : ""}`}>
                   {event.bannerUrl ? (
                     <img
-                      src={event.bannerUrl}
+                      src={publicImageUrl(event.bannerUrl)}
                       alt=""
                       loading="lazy"
                       decoding="async"
@@ -265,8 +266,8 @@ export function EventsManagementPage({ session }) {
                 </div>
                 </Link>
                 <footer className="admin-event-actions">
-                  <Link className="admin-event-categories-link" to={`/dashboard/categories?eventId=${encodeURIComponent(event.id)}`}>
-                    View categories <ArrowRight />
+                  <Link className="admin-event-categories-link" to={event.eventAsCategory ? `/dashboard/candidates?eventId=${encodeURIComponent(event.id)}` : `/dashboard/categories?eventId=${encodeURIComponent(event.id)}`}>
+                    View {event.eventAsCategory ? 'candidates' : 'categories'} <ArrowRight />
                   </Link>
                   <button
                     className="icon-action"
@@ -408,7 +409,7 @@ export function ArchivedEventsPage({ session }) {
           {events.map((event) => (
             <article className="management-card admin-event-card" key={event.id}>
               <div className="admin-event-banner">
-                {event.bannerUrl ? <img src={event.bannerUrl} alt="" loading="lazy" decoding="async" /> : <CalendarDays aria-hidden="true" />}
+                {event.bannerUrl ? <img src={publicImageUrl(event.bannerUrl)} alt="" loading="lazy" decoding="async" /> : <CalendarDays aria-hidden="true" />}
                 <span className="event-state">Archived</span>
               </div>
               <div className="admin-event-content">
@@ -820,7 +821,7 @@ function EventEditForm({ event, isSuperAdmin, onClose, onSaved }) {
           Event banner
           <span className="event-edit-banner-preview">
             {bannerPreview ? (
-              <img src={bannerPreview} alt="Event banner preview" />
+              <img src={publicImageUrl(bannerPreview)} alt="Event banner preview" />
             ) : (
               <ImagePlus />
             )}

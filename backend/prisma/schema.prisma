@@ -249,6 +249,7 @@ model Event {
   timezone                   String            @default("Africa/Accra")
   currency                   String            @default("GHS")
   defaultVotePrice           Int
+  eventAsCategory            Boolean           @default(false)
   platformFeeBps             Int               @default(0)
   minimumVotes               Int               @default(1)
   maximumVotesPerTransaction Int               @default(10000)

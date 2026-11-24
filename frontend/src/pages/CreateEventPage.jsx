@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png';
+import { api } from './organizer-admin/adminApi.js';
 
 const STORAGE_KEY = 'toabapa:create-event-draft';
 const steps = [
@@ -45,6 +46,7 @@ const emptyDraft = {
   webVotingEnabled: true,
   ussdVotingEnabled: false,
   resultsVisibility: 'ADMIN_ONLY',
+  eventAsCategory: false,
 };
 
 function loadDraft() {
@@ -159,22 +161,15 @@ export default function CreateEventPage({ session }) {
     try {
       let uploadedBannerUrl = '';
       if (bannerFile) {
-        const uploadResponse = await fetch('/api/v1/organizer/event-images', {
+        const uploaded = await api('/api/v1/organizer/event-images', {
           method: 'POST',
-          credentials: 'include',
           headers: { 'Content-Type': bannerFile.type },
           body: bannerFile,
         });
-        const uploadPayload = await uploadResponse.json();
-        if (!uploadResponse.ok || !uploadPayload.success) {
-          throw new Error(uploadPayload?.error?.message || 'Unable to upload the event banner.');
-        }
-        uploadedBannerUrl = uploadPayload.data.bannerUrl;
+        uploadedBannerUrl = uploaded.bannerUrl;
       }
-      const response = await fetch('/api/v1/organizer/events', {
+      const created = await api('/api/v1/organizer/events', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: draft.name,
           description: draft.description,
@@ -192,15 +187,11 @@ export default function CreateEventPage({ session }) {
           webVotingEnabled: draft.webVotingEnabled,
           ussdVotingEnabled: draft.ussdVotingEnabled,
           resultsVisibility: draft.resultsVisibility,
+          eventAsCategory: draft.eventAsCategory,
           bannerUrl: uploadedBannerUrl,
         }),
       });
-      const payload = await response.json();
-      if (!response.ok || !payload.success)
-        throw new Error(
-          payload?.error?.message || 'Unable to publish the event.',
-        );
-      setPublishedEvent(payload.data);
+      setPublishedEvent(created);
       setComplete(true);
       localStorage.removeItem(STORAGE_KEY);
     } catch (error) {
@@ -237,7 +228,7 @@ export default function CreateEventPage({ session }) {
           <h1>{draft.name}</h1>
           <p>
             Your event is now available in Explore. Continue by adding
-            categories and candidates.
+            {draft.eventAsCategory ? ' candidates.' : ' categories and candidates.'}
           </p>
           <div className="success-actions">
             <button
@@ -249,10 +240,10 @@ export default function CreateEventPage({ session }) {
             </button>
             <button
               className="secondary-action"
-              onClick={() => navigate('/dashboard/categories')}
+              onClick={() => navigate(draft.eventAsCategory ? `/dashboard/candidates?eventId=${publishedEvent.id}` : `/dashboard/categories?eventId=${publishedEvent.id}`)}
               type="button"
             >
-              Add categories
+              {draft.eventAsCategory ? 'Add candidates' : 'Add categories'}
             </button>
           </div>
         </div>
@@ -429,6 +420,10 @@ export default function CreateEventPage({ session }) {
                   <span>{draft.description.length}/500</span>
                 </div>
               </div>
+              <label className="event-category-option">
+                <input type="checkbox" checked={draft.eventAsCategory} onChange={(event) => update('eventAsCategory', event.target.checked)} />
+                <span><strong>Use this event as a category</strong><small>Voters will open this event and see its candidates directly. You will not need to create categories.</small></span>
+              </label>
             </div>
           )}
 
@@ -666,6 +661,7 @@ export default function CreateEventPage({ session }) {
                   label="Minimum votes"
                   value={`${draft.minimumVotes} vote${Number(draft.minimumVotes) === 1 ? '' : 's'}`}
                 />
+                <ReviewItem icon={Tag} label="Candidate grouping" value={draft.eventAsCategory ? 'Event is the category' : 'Separate categories'} />
                 {isSuperAdmin && <ReviewItem icon={ReceiptText} label="Platform fee" value={`${Number(draft.platformFeePercent || 0).toFixed(2)}%`} />}
                 <ReviewItem
                   icon={Settings2}

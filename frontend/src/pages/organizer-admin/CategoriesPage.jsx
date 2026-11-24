@@ -19,10 +19,12 @@ import {
 import { api } from "./adminApi.js";
 import { useOrganizerContext } from "./useOrganizerContext.js";
 import { SnackbarNotice } from "../../components/SnackbarProvider.jsx";
+import { publicImageUrl } from "../../lib/siteUrls.js";
 export function CategoriesPage({ session }) {
   const context = useOrganizerContext();
   const [params, setParams] = useSearchParams();
   const eventId = params.get("eventId") || "";
+  const eventIsCategory = context.events.find((event) => event.id === eventId)?.eventAsCategory;
   const [items, setItems] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
@@ -63,7 +65,7 @@ export function CategoriesPage({ session }) {
       session={session}
       title={eventId ? `${context.events.find((event) => event.id === eventId)?.name || "Event"} categories` : "Categories"}
       description="Choose a category to view its candidates."
-      action={
+      action={!eventIsCategory && context.events.some((event) => !event.eventAsCategory) &&
         <button
           className="primary-action"
           onClick={() => setShowForm(true)}
@@ -111,7 +113,7 @@ export function CategoriesPage({ session }) {
                 <Link className="category-main-link" to={`/dashboard/candidates?eventId=${encodeURIComponent(item.eventId)}&categoryId=${encodeURIComponent(item.id)}`} aria-label={`View candidates in ${item.name}`}>
                   <div className="category-card-image">
                     {item.imageUrl || item.event.bannerUrl ? (
-                      <img src={item.imageUrl || item.event.bannerUrl} alt="" loading="lazy" decoding="async" />
+                      <img src={publicImageUrl(item.imageUrl || item.event.bannerUrl)} alt="" loading="lazy" decoding="async" />
                     ) : (
                       <Tag aria-hidden="true" />
                     )}
@@ -130,7 +132,7 @@ export function CategoriesPage({ session }) {
                     <button type="button" title="View results" aria-label={`View results for ${item.name}`} aria-expanded={selectedCategoryId === item.id} onClick={() => setSelectedCategoryId((current) => current === item.id ? "" : item.id)}>
                       <Users />
                     </button>
-                    <button
+                    {!item.event.eventAsCategory && <button
                       type="button"
                       title="Edit category"
                       onClick={() => {
@@ -138,8 +140,8 @@ export function CategoriesPage({ session }) {
                       }}
                     >
                       <Pencil />
-                    </button>
-                    <button
+                    </button>}
+                    {!item.event.eventAsCategory && <button
                       onClick={() => {
                         archive(item);
                       }}
@@ -147,7 +149,7 @@ export function CategoriesPage({ session }) {
                       title="Archive category"
                     >
                       <Archive />
-                    </button>
+                    </button>}
                   </div>
                 </footer>
               </article>
@@ -254,7 +256,7 @@ function CategoryCandidatesPanel({ category, candidates, onClose }) {
                 >
                   {candidate.photoUrl ? (
                     <img
-                      src={candidate.photoUrl}
+                      src={publicImageUrl(candidate.photoUrl)}
                       alt=""
                       loading="lazy"
                       decoding="async"
@@ -294,8 +296,9 @@ function CategoryCandidatesPanel({ category, candidates, onClose }) {
 }
 
 function CategoryForm({ events, item, initialEventId, onClose, onCreated }) {
+  const categoryEvents = events.filter((event) => !event.eventAsCategory);
   const [form, setForm] = useState({
-    eventId: item?.eventId || initialEventId || events[0]?.id || "",
+    eventId: item?.eventId || initialEventId || categoryEvents[0]?.id || "",
     name: item?.name || "",
     description: item?.description || "",
     imageUrl: item?.imageUrl || "",
@@ -362,7 +365,7 @@ function CategoryForm({ events, item, initialEventId, onClose, onCreated }) {
             <option value="" disabled>
               Select event
             </option>
-            {events.map((item) => (
+            {categoryEvents.map((item) => (
               <option value={item.id} key={item.id}>
                 {item.name}
               </option>

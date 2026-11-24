@@ -17,8 +17,10 @@ export const eventHref = (slug) => isMarketingSite ? appHref(`/events/${slug}`) 
 export const publicPageHref = (path) => isMarketingSite ? path : marketingHref(path);
 
 export function publicImageUrl(path) {
-  if (!path || !isMarketingSite || !path.startsWith('/api/')) return path;
-  const apiOrigin = import.meta.env.VITE_PUBLIC_API_URL;
-  if (!apiOrigin) throw new Error('Set VITE_PUBLIC_API_URL for the marketing site.');
+  if (!path || !path.startsWith('/api/')) return path;
+  const apiOrigin = isMarketingSite
+    ? import.meta.env.VITE_PUBLIC_API_URL
+    : import.meta.env.VITE_API_URL;
+  if (!apiOrigin) throw new Error('Set the public API URL for this site.');
   return join(apiOrigin, path);
 }

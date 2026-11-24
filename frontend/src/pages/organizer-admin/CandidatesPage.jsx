@@ -19,6 +19,7 @@ import {
 import { api } from "./adminApi.js";
 import { useOrganizerContext } from "./useOrganizerContext.js";
 import { SnackbarNotice } from "../../components/SnackbarProvider.jsx";
+import { publicImageUrl } from "../../lib/siteUrls.js";
 export function CandidatesPage({ session }) {
   const context = useOrganizerContext();
   const [params, setParams] = useSearchParams();
@@ -51,6 +52,7 @@ export function CandidatesPage({ session }) {
     ? items.filter((item) => item.categoryId === categoryId)
     : items;
   const selectedCategory = categories.find((item) => item.id === categoryId);
+  const selectedEvent = context.events.find((event) => event.id === eventId);
   async function archive(item) {
     if (!window.confirm(`Archive ${item.name}?`)) return;
     try {
@@ -78,7 +80,7 @@ export function CandidatesPage({ session }) {
         </button>
       }
     >
-      {eventId && <Link className="dashboard-flow-back" to={`/dashboard/categories?eventId=${encodeURIComponent(eventId)}`}><ArrowLeft /> {context.events.find((event) => event.id === eventId)?.name || "Event"} categories</Link>}
+      {eventId && <Link className="dashboard-flow-back" to={selectedEvent?.eventAsCategory ? '/dashboard/events' : `/dashboard/categories?eventId=${encodeURIComponent(eventId)}`}><ArrowLeft /> {selectedEvent?.eventAsCategory ? 'All events' : `${selectedEvent?.name || 'Event'} categories`}</Link>}
       <div className="management-toolbar">
         <label className="toolbar-filter-field">
           <span>Event</span>
@@ -135,7 +137,7 @@ export function CandidatesPage({ session }) {
                       <span className={item.photoUrl ? "has-photo" : ""}>
                         {item.photoUrl ? (
                           <img
-                            src={item.photoUrl}
+                            src={publicImageUrl(item.photoUrl)}
                             alt=""
                             loading="lazy"
                             decoding="async"
@@ -245,6 +247,8 @@ function CandidateForm({ events, categories, item, initialEventId, initialCatego
     [photoPreview],
   );
   const available = categories.filter((item) => item.eventId === form.eventId);
+  const eventAsCategory = events.find((event) => event.id === form.eventId)?.eventAsCategory;
+  const selectedCategoryId = form.categoryId || (eventAsCategory && available.length === 1 ? available[0].id : "");
   async function submit(event) {
     event.preventDefault();
     setSubmitting(true);
@@ -267,6 +271,7 @@ function CandidateForm({ events, categories, item, initialEventId, initialCatego
           method: item ? "PATCH" : "POST",
           body: JSON.stringify({
             ...form,
+            categoryId: selectedCategoryId,
             ...(item ? { eventId: undefined } : {}),
             photoUrl,
           }),
@@ -301,7 +306,7 @@ function CandidateForm({ events, categories, item, initialEventId, initialCatego
           className={`candidate-photo-upload ${photoPreview ? "has-image" : ""}`}
         >
           {photoPreview ? (
-            <img src={photoPreview} alt="Candidate preview" />
+            <img src={publicImageUrl(photoPreview)} alt="Candidate preview" />
           ) : (
             <>
               <ImagePlus />
@@ -340,10 +345,10 @@ function CandidateForm({ events, categories, item, initialEventId, initialCatego
               ))}
             </select>
           </label>
-          <label>
+          {!eventAsCategory && <label>
             Category
             <select
-              value={form.categoryId}
+              value={selectedCategoryId}
               onChange={(event) =>
                 setForm({ ...form, categoryId: event.target.value })
               }
@@ -358,7 +363,7 @@ function CandidateForm({ events, categories, item, initialEventId, initialCatego
                 </option>
               ))}
             </select>
-          </label>
+          </label>}
         </div>
         <div className="admin-form-row">
           <label>

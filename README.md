@@ -133,6 +133,15 @@ must be copied to the corresponding S3 keys before moving to an ephemeral host.
 Run `npm run images:migrate:s3` on the machine that has those local files. It
 copies recognized image files to the private bucket using their existing keys.
 
+For separate frontend and API hosts, build the app with `VITE_API_URL` set to
+the public API origin and the marketing site with `VITE_PUBLIC_API_URL` set to
+that same origin. Both values are baked into their frontend builds. Image
+previews use these origins for stored `/api/v1/public/...-images/` paths.
+If an uploaded image still does not appear, open its API image URL directly:
+404 usually means the object was not migrated to S3; 500 indicates an API or
+S3 read error. Ensure the configured IAM principal has `s3:GetObject` for
+both `events/*` and `candidates/*`.
+
 ## Running Locally
 
 Start the frontend and API together:
