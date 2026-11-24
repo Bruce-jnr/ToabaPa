@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { env } from "../config/env.js";
+import { logger } from "../config/logger.js";
 import { AppError } from "../errors/app-error.js";
 import type {
   PaymentInitialization,
@@ -74,6 +75,17 @@ const accountResolutionResponseSchema = z.object({
   }),
 });
 
+function paymentProviderFailureCategory(payload: unknown): string {
+  const message = payload && typeof payload === 'object' && 'message' in payload
+    && typeof payload.message === 'string' ? payload.message : '';
+  if (/email/i.test(message)) return 'EMAIL';
+  if (/amount|minimum|maximum/i.test(message)) return 'AMOUNT';
+  if (/currency/i.test(message)) return 'CURRENCY';
+  if (/reference/i.test(message)) return 'REFERENCE';
+  if (/authorization|authentication|secret key|api key|unauthorized/i.test(message)) return 'AUTHENTICATION';
+  return 'OTHER';
+}
+
 export function isValidPaystackSignature(
   rawBody: Buffer,
   signature: string | undefined,
@@ -134,6 +146,7 @@ export class PaystackProvider implements PaymentProvider {
       });
       const payload: unknown = await response.json().catch(() => null);
       if (!response.ok) {
+        logger.error({ endpoint: path, upstreamStatus: response.status, category: paymentProviderFailureCategory(payload) }, 'Payment provider request rejected');
         throw new AppError(
           502,
           "PAYMENT_PROVIDER_ERROR",
@@ -143,6 +156,7 @@ export class PaystackProvider implements PaymentProvider {
       return payload;
     } catch (error) {
       if (error instanceof AppError) throw error;
+      logger.error({ endpoint: path, errorType: error instanceof Error ? error.name : 'UNKNOWN' }, 'Payment provider request failed before a response');
       throw new AppError(
         502,
         "PAYMENT_PROVIDER_UNREACHABLE",
@@ -179,16 +193,21 @@ export class PaystackProvider implements PaymentProvider {
         }),
       }),
     });
-    const response = initializeResponseSchema.parse(raw);
-    if (!response.status || response.data.reference !== input.reference)
+    const parsed = initializeResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      logger.error({ endpoint: '/transaction/initialize' }, 'Payment provider returned an unexpected initialization response');
+    } else if (!parsed.data.status || parsed.data.data.reference !== input.reference) {
+      logger.error({ endpoint: '/transaction/initialize', accepted: parsed.data.status, referenceMatches: parsed.data.data.reference === input.reference }, 'Payment provider initialization response was rejected');
+    }
+    if (!parsed.success || !parsed.data.status || parsed.data.data.reference !== input.reference)
       throw new AppError(
         502,
         "PAYMENT_INITIALIZATION_FAILED",
         "Payment could not be initialized.",
       );
     return {
-      reference: response.data.reference,
-      authorizationUrl: response.data.authorization_url,
+      reference: parsed.data.data.reference,
+      authorizationUrl: parsed.data.data.authorization_url,
     };
   }
 

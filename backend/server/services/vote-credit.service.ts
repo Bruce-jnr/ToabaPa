@@ -31,8 +31,9 @@ export async function creditVerifiedPayment(
         details: Record<string, string | number>;
       }
     | undefined;
-  try {
-    return await prisma.$transaction(
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      return await prisma.$transaction(
       async (tx) => {
         const order = await tx.voteOrder.findUnique({
           where: { paymentReference: verified.reference },
@@ -107,7 +108,22 @@ export async function creditVerifiedPayment(
           );
         }
 
-        const payment = await tx.payment.create({
+        const existingPayment = await tx.payment.findUnique({
+          where: { orderId: order.id },
+        });
+        if (existingPayment && (
+          existingPayment.provider !== provider ||
+          existingPayment.reference !== verified.reference ||
+          existingPayment.amount !== verified.amount ||
+          existingPayment.currency.toUpperCase() !== verified.currency.toUpperCase() ||
+          existingPayment.status !== PaymentStatus.PAID ||
+          (existingPayment.providerTransactionId &&
+            existingPayment.providerTransactionId !== verified.providerTransactionId)
+        )) {
+          throw new AppError(409, "PAYMENT_RECORD_MISMATCH", "Existing payment does not match the verified transaction.");
+        }
+
+        const payment = existingPayment ?? await tx.payment.create({
           data: {
             organizationId: order.organizationId,
             orderId: order.id,
@@ -174,19 +190,24 @@ export async function creditVerifiedPayment(
         return transaction;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-    );
-  } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      const existing = await prisma.voteTransaction.findUnique({
-        where: { paymentReference: verified.reference },
-      });
-      if (existing) return existing;
-    }
-    if (integrityAlert)
-      await enqueueAlert({
+      );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2002") {
+          const existing = await prisma.voteTransaction.findUnique({
+            where: { paymentReference: verified.reference },
+          });
+          if (existing) return existing;
+        }
+        // Verification and the Paystack webhook can credit the same order at once.
+        // A failed serializable transaction rolls back; read fresh state on retry.
+        if ((error.code === "P2034" || error.code === "P2002") && attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 25 * 2 ** attempt));
+          continue;
+        }
+      }
+      if (integrityAlert)
+        await enqueueAlert({
         code: integrityAlert.code,
         severity: "P1",
         title: "Payment integrity mismatch",
@@ -198,7 +219,9 @@ export async function creditVerifiedPayment(
         resourceId: integrityAlert.orderId,
         details: integrityAlert.details,
         dedupeParts: [integrityAlert.code, verified.reference],
-      });
-    throw error;
+        });
+      throw error;
+    }
   }
+  throw new Error("Payment credit retry limit reached.");
 }
